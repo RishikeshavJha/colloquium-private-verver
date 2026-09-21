@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { loadPassport, savePassport, emptyPerson, getAuthUser, WHATSAPP_LINK, type Passport } from '../utils/storage';
+import { getUserSubmissions, type FirestoreSubmission } from '../lib/db';
 import { tracks } from '../data/tracks';
 import {
   FileText,
@@ -34,6 +35,7 @@ export const DashboardPage: React.FC = () => {
   const [passport, setPassport] = useState<Passport>(() => loadPassport());
   const [user, setUser] = useState(() => getAuthUser());
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 });
+  const [firestoreSubmissions, setFirestoreSubmissions] = useState<(FirestoreSubmission & { id: string })[]>([]);
 
   useEffect(() => {
     const p = loadPassport();
@@ -43,7 +45,16 @@ export const DashboardPage: React.FC = () => {
       savePassport(p);
     }
     setPassport(p);
-    setUser(getAuthUser());
+    const currentUser = getAuthUser();
+    setUser(currentUser);
+
+    if (currentUser?.id) {
+      getUserSubmissions(currentUser.id).then((subs) => {
+        setFirestoreSubmissions(subs);
+      }).catch(err => {
+        console.error("Failed to load firestore submissions", err);
+      });
+    }
 
     // Conference Date: October 3, 2026 at 9:00 AM IST (from Landing Page)
     const targetDate = new Date('2026-10-03T09:00:00').getTime();
@@ -510,7 +521,88 @@ export const DashboardPage: React.FC = () => {
               )}
             </div>
 
-            {hasAbstracts ? (
+            {firestoreSubmissions.length > 0 ? (
+              <div className="space-y-3">
+                {firestoreSubmissions.map((sub) => {
+                  const evalSt = sub.evaluationStatus || 'PENDING';
+                  const paySt = sub.paymentStatus || 'NOT_PAID';
+                  return (
+                    <div
+                      key={sub.id}
+                      className="p-3 sm:p-4 rounded-xl bg-white border border-[#C8B89A] flex flex-col gap-3"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span className="font-bold text-sm text-[#0A2A5E]">
+                            {sub.problemStatement ? (sub.problemStatement.slice(0, 60) + (sub.problemStatement.length > 60 ? '…' : '')) : sub.track}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {evalSt === 'SELECTED' ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                ✓ Selected
+                              </span>
+                            ) : evalSt === 'REJECTED' ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-800 border border-red-300">
+                                ✕ Rejected
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
+                                In Review
+                              </span>
+                            )}
+                            {paySt === 'PAID' ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 border border-green-300">
+                                Fee Verified
+                              </span>
+                            ) : paySt === 'FAILED' ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-800 border border-red-300">
+                                Fee Rejected
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-300">
+                                Fee Pending
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-xs text-[#5A5A7A] mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                          <span>Track: <strong className="text-[#0A2A5E]">{sub.track}</strong></span>
+                          <span>Team: <span className="font-semibold">{sub.teamName}</span></span>
+                          <span>Uploaded: {sub.createdAtIST || 'Recorded'}</span>
+                        </div>
+
+                        {/* Evaluator Remarks & Teacher Details */}
+                        {sub.evaluatorRemarks && (
+                          <div className="mt-2.5 p-2.5 bg-blue-50/80 border border-blue-200 rounded-lg text-xs">
+                            <span className="font-bold text-blue-950 block">
+                              Teacher Feedback {sub.evaluatedBy ? `(${sub.evaluatedBy})` : ''}:
+                            </span>
+                            <p className="text-blue-900 mt-0.5 italic leading-relaxed">"{sub.evaluatorRemarks}"</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+                        <span className="text-[11px] text-gray-400 font-mono">
+                          Submission ID: {sub.id.slice(0, 8)}…
+                        </span>
+                        {sub.pptLink && (
+                          <a
+                            href={sub.pptLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0A2A5E] bg-[#FAF6EE] hover:bg-[#F3EAD7] px-3 py-1.5 rounded-lg border border-[#C8B89A] transition-colors"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 text-[#FF6B00]" />
+                            <span>View Uploaded PPT</span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : hasAbstracts ? (
               <div className="space-y-3">
                 {passport.abstracts.map((abs) => (
                   <div

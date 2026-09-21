@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { loadPassport, savePassport, getAuthUser, type Passport, type Abstract } from '../utils/storage';
+import { uploadPPTFile, saveProjectSubmission, getUserSubmissions, type FirestoreSubmission } from '../lib/db';
 import { tracks } from '../data/tracks';
 import {
   Upload,
@@ -14,6 +15,8 @@ import {
   Lock,
   Users,
   AlertCircle,
+  Clock,
+  ExternalLink,
 } from 'lucide-react';
 
 const trackThemeImages: Record<string, { image: string }> = {
@@ -41,11 +44,23 @@ export const SubmitPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [showWarning, setShowWarning] = useState<boolean>(false);
+  const [existingSubmission, setExistingSubmission] = useState<(FirestoreSubmission & { id: string }) | null>(null);
+  const [firestoreLoading, setFirestoreLoading] = useState(false);
+  const [firestoreError, setFirestoreError] = useState<string | null>(null);
 
   useEffect(() => {
     const loaded = loadPassport();
     setPassport(loaded);
-    setUser(getAuthUser());
+    const currentUser = getAuthUser();
+    setUser(currentUser);
+
+    if (currentUser?.id) {
+      getUserSubmissions(currentUser.id).then((subs) => {
+        if (subs && subs.length > 0) {
+          setExistingSubmission(subs[0]);
+        }
+      }).catch(err => console.error("Error fetching user submissions:", err));
+    }
   }, []);
 
   const isUnlocked = !!user || !!passport.registered;
@@ -89,6 +104,141 @@ export const SubmitPage: React.FC = () => {
           <div className="mt-8 pt-6 border-t border-[#C8B89A]/40">
             <Link to="/" className="text-xs font-semibold text-[#5A5A7A] hover:text-[#0A2A5E]">
               ← Return to Conclave Homepage
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If user has already submitted a presentation, render locked view with PPT view & evaluation status
+  if (existingSubmission || (passport.abstracts && passport.abstracts.length > 0)) {
+    const sub = existingSubmission;
+    const localAbs = passport.abstracts[0];
+    const pptUrl = sub?.pptLink || sub?.pdfLink || '';
+    const rawStatus = (sub?.evaluationStatus || 'PENDING').toUpperCase();
+
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12">
+        <div className="bg-white rounded-3xl border-2 border-[#C8B89A] p-6 sm:p-10 shadow-2xl space-y-6">
+          {/* Header & Status Badge */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#C8B89A]/40 pb-5">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-xs font-bold tracking-widest text-[#0A2A5E] uppercase mb-2">
+                <Lock className="w-3.5 h-3.5 text-[#FF6B00]" />
+                SUBMISSION RECORD LOCKED
+              </div>
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#0A2A5E]">
+                Presentation Already Submitted
+              </h2>
+            </div>
+
+            {/* Live Evaluation Status Badge */}
+            <div>
+              {rawStatus === 'SELECTED' ? (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold text-xs uppercase tracking-wider shadow-sm">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  Selected for Conclave
+                </span>
+              ) : rawStatus === 'REJECTED' ? (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-100 text-rose-900 border border-rose-300 font-bold text-xs uppercase tracking-wider shadow-sm">
+                  <AlertCircle className="w-4 h-4 text-rose-600" />
+                  Not Shortlisted
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs uppercase tracking-wider shadow-sm animate-pulse">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                  Evaluation Pending
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Locked Notice */}
+          <div className="p-4 rounded-2xl bg-[#FAF6EE] border border-[#C8B89A] flex items-start gap-3">
+            <Info className="w-5 h-5 text-[#FF6B00] shrink-0 mt-0.5" />
+            <div className="text-xs text-[#5A5A7A] leading-relaxed">
+              <strong className="text-[#0A2A5E] font-bold block mb-0.5">Presentation Upload Completed:</strong>
+              Your presentation file and abstract details have been securely submitted for evaluation. To preserve review fairness, another submission cannot be uploaded.
+            </div>
+          </div>
+
+          {/* Submission Details */}
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-[#0A2A5E]">Research Title / Problem Statement</label>
+              <p className="text-sm font-semibold text-[#0A2A5E] bg-[#FCF9F2] p-3.5 rounded-xl border border-[#C8B89A]/60 mt-1">
+                {sub?.problemStatement || localAbs?.title || 'Submitted Presentation'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-[#0A2A5E]">Research Track</label>
+                <p className="text-sm font-semibold text-[#0A2A5E] bg-[#FCF9F2] p-3 rounded-xl border border-[#C8B89A]/60 mt-1">
+                  {sub?.track || passport.track || 'Selected Track'}
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-[#0A2A5E]">Submission Timestamp</label>
+                <p className="text-sm font-semibold text-[#0A2A5E] bg-[#FCF9F2] p-3 rounded-xl border border-[#C8B89A]/60 mt-1">
+                  {sub?.createdAtIST || localAbs?.date || 'Recorded'}
+                </p>
+              </div>
+            </div>
+
+            {sub?.solutionSummary && (
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-[#0A2A5E]">Abstract / Solution Summary</label>
+                <p className="text-xs text-[#5A5A7A] bg-[#FCF9F2] p-3.5 rounded-xl border border-[#C8B89A]/60 mt-1 leading-relaxed">
+                  {sub.solutionSummary}
+                </p>
+              </div>
+            )}
+
+            {/* View Submitted Presentation */}
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-[#0A2A5E]">Submitted Presentation File</label>
+              <div className="mt-1.5 p-4 rounded-2xl bg-white border-2 border-[#0A2A5E]/20 flex items-center justify-between gap-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#0A2A5E] text-amber-400 flex items-center justify-center font-bold">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#0A2A5E]">
+                      {localAbs?.filename || 'Presentation_File.pdf'}
+                    </h4>
+                    <span className="text-[11px] font-medium text-emerald-700">Uploaded & Verified in Database</span>
+                  </div>
+                </div>
+
+                {pptUrl ? (
+                  <a
+                    href={pptUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E65A00] text-white text-xs font-bold shadow-md transition-all shrink-0 active:scale-95"
+                  >
+                    <span>View Submitted Presentation</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                ) : (
+                  <span className="text-xs font-bold text-[#138808] bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+                    Recorded
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-[#C8B89A]/40 text-center">
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-2 text-xs font-bold text-[#0A2A5E] hover:text-[#FF6B00] transition-colors"
+            >
+              <span>Return to Participant Dashboard</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
@@ -145,7 +295,7 @@ export const SubmitPage: React.FC = () => {
 
   const wordCount = summary.trim() ? summary.trim().split(/\s+/).length : 0;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errors: Record<string, string> = {};
 
@@ -175,38 +325,69 @@ export const SubmitPage: React.FC = () => {
 
     setValidationErrors({});
     setShowWarning(false);
+    setFirestoreError(null);
 
     if (!file) return;
 
-    const newAbstract: Abstract = {
-      id: `PPT-${Date.now().toString().slice(-6)}`,
-      title: title.trim(),
-      track: selectedTrack,
-      filename: file.name,
-      size: file.size,
-      date: new Date().toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }),
-    };
+    const currentUser = user || getAuthUser();
 
-    // ONLY ONE PPT CAN BE SUBMITTED
-    const updatedPassport: Passport = {
-      ...passport,
-      track: selectedTrack,
-      abstracts: [newAbstract],
-    };
+    setFirestoreLoading(true);
+    try {
+      // 1. Upload PPT file to Firebase Storage
+      let pptLink = '';
+      if (currentUser?.id) {
+        pptLink = await uploadPPTFile(currentUser.id, file);
+      }
 
-    savePassport(updatedPassport);
-    setPassport(updatedPassport);
+      // 2. Build the local abstract record
+      const newAbstract: Abstract = {
+        id: `PPT-${Date.now().toString().slice(-6)}`,
+        title: title.trim(),
+        track: selectedTrack,
+        filename: file.name,
+        size: file.size,
+        date: new Date().toLocaleDateString('en-IN', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }),
+      };
 
-    setSuccessMessage(`PPT Presentation "${title}" successfully recorded under Reference ${newAbstract.id}!`);
-    setTitle('');
-    setSummary('');
-    setFile(null);
+      // 3. Save to Firestore & trigger n8n webhook
+      if (currentUser?.id) {
+        await saveProjectSubmission(currentUser.id, {
+          teamName: passport.team || currentUser.name,
+          email: currentUser.email,
+          track: selectedTrack,
+          category: passport.category || '',
+          problemStatement: title.trim(),
+          solutionSummary: summary.trim(),
+          pptLink,
+          secret: `SECRET-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+          file,
+        });
+      }
 
-    window.scrollTo({ top: 100, behavior: 'smooth' });
+      // 4. Update local passport cache
+      const updatedPassport: Passport = {
+        ...passport,
+        track: selectedTrack,
+        abstracts: [newAbstract],
+      };
+      savePassport(updatedPassport);
+      setPassport(updatedPassport);
+
+      setSuccessMessage(`PPT Presentation "${title}" successfully recorded under Reference ${newAbstract.id}!`);
+      setTitle('');
+      setSummary('');
+      setFile(null);
+      window.scrollTo({ top: 100, behavior: 'smooth' });
+    } catch (err) {
+      console.error('Submission error:', err);
+      setFirestoreError('Upload failed. Please check your connection and try again.');
+    } finally {
+      setFirestoreLoading(false);
+    }
   };
 
   const handleDeleteAbstract = (id: string) => {
@@ -593,6 +774,14 @@ export const SubmitPage: React.FC = () => {
           </div>
         )}
 
+        {/* Firestore error */}
+        {firestoreError && (
+          <div className="p-3.5 bg-red-50 border-2 border-red-400 rounded-xl flex items-center gap-2.5 text-xs font-bold text-red-800 shadow-sm">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <span>{firestoreError}</span>
+          </div>
+        )}
+
         {/* Submit Button */}
         <div className="pt-4 flex flex-col-reverse sm:flex-row items-center justify-between gap-4 border-t border-[#C8B89A]/50">
           <Link
@@ -604,14 +793,24 @@ export const SubmitPage: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] text-white font-bold text-sm px-8 py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 cursor-pointer min-h-[44px]"
+            disabled={firestoreLoading}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm px-8 py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 cursor-pointer min-h-[44px]"
           >
-            <span>
-              {passport.abstracts && passport.abstracts.length >= 1
-                ? 'Update PPT Presentation'
-                : 'Submit PPT Presentation'}
-            </span>
-            <ArrowRight className="w-4 h-4" />
+            {firestoreLoading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                <span>Uploading…</span>
+              </>
+            ) : (
+              <>
+                <span>
+                  {passport.abstracts && passport.abstracts.length >= 1
+                    ? 'Update PPT Presentation'
+                    : 'Submit PPT Presentation'}
+                </span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </div>
       </form>

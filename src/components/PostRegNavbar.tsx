@@ -1,7 +1,9 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
-import { getAuthUser, loadPassport, setAuthUser } from '../utils/storage';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
+import { getAuthUser, loadPassport, setAuthUser, type AuthUser } from '../utils/storage';
 
 const allNavLinks = [
   { name: 'Dashboard', path: '/dashboard', authRequired: true },
@@ -16,15 +18,36 @@ const PostRegNavbar = () => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
-  const [user, setUser] = useState(getAuthUser());
+  const [user, setUser] = useState<AuthUser | null>(getAuthUser());
 
   useEffect(() => {
-    const auth = getAuthUser();
-    const passport = loadPassport();
-    setUser(auth);
-    // Unlocked ONLY if user is authenticated OR has completed registration
-    setIsUnlocked(!!auth || !!passport.registered);
-  }, [location.pathname]);
+    // Subscribe to Firebase auth state — updates in real time on login/logout
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        const cachedUser = getAuthUser();
+        // Use cached user info (name/avatar) if UID matches, else build from Firebase
+        const u: AuthUser = cachedUser && cachedUser.id === firebaseUser.uid
+          ? cachedUser
+          : {
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName || 'Scholar',
+              email: firebaseUser.email || '',
+              avatar: firebaseUser.photoURL || undefined,
+            };
+        setUser(u);
+        setAuthUser(u);
+        const passport = loadPassport();
+        setIsUnlocked(true || !!passport.registered);
+      } else {
+        // Signed out
+        const passport = loadPassport();
+        setUser(null);
+        setAuthUser(null);
+        setIsUnlocked(!!passport.registered);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const isEntrancePage = location.pathname === '/register' || location.pathname === '/login';
 
@@ -93,7 +116,8 @@ const PostRegNavbar = () => {
             <div className="hidden sm:flex items-center gap-2 bg-white/10 px-2.5 py-1 rounded-full border border-white/20">
               <span className="text-xs font-bold text-amber-300">{user.name.split(' ')[0]}</span>
               <button
-                onClick={() => {
+                onClick={async () => {
+                  await signOut(auth);
                   setAuthUser(null);
                   setUser(null);
                   setIsUnlocked(false);
@@ -142,7 +166,8 @@ const PostRegNavbar = () => {
                 <div className="flex items-center gap-3 mt-2 pt-3 border-t border-white/15 w-[90%] justify-center">
                   <span className="text-xs font-bold text-amber-300">{user.name.split(' ')[0]}</span>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
+                      await signOut(auth);
                       setAuthUser(null);
                       setUser(null);
                       setIsUnlocked(false);

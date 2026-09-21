@@ -1,16 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  loadPassport,
-  savePassport,
-  emptyPerson,
-  validatePerson,
-  yearOptionsFor,
-  getAuthUser,
-  setAuthUser,
-  type Passport,
-  type Person,
-} from '../utils/storage';
+import { loadPassport, savePassport, emptyPerson, validatePerson, yearOptionsFor, getAuthUser, setAuthUser, type Passport, type Person } from '../utils/storage';
+import { updateUserProfile } from '../lib/db';
 import { tracks } from '../data/tracks';
 import {
   Save,
@@ -172,6 +163,18 @@ export const ProfilePage: React.FC = () => {
         name: leaderPerson.name.trim(),
         email: leaderPerson.email.trim().toLowerCase() || currentAuth.email,
       });
+
+      // Also update Firestore doc if signed in
+      updateUserProfile(currentAuth.id, {
+        name: leaderPerson.name.trim(),
+        email: leaderPerson.email.trim().toLowerCase() || currentAuth.email,
+        phoneNumber: leaderPerson.mobile,
+        college: leaderPerson.institution,
+        branch: leaderPerson.department,
+        year: leaderPerson.year,
+        linkedinProfileUrl: leaderPerson.linkedin,
+        teamName: passport.team || '',
+      }).catch(err => console.error('Failed to sync profile to Firestore:', err));
     }
 
     setToast(true);
