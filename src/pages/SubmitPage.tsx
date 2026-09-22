@@ -305,14 +305,20 @@ export const SubmitPage: React.FC = () => {
     if (!selectedTrack) {
       errors.track = 'Please select a Research Track / Theme.';
     }
+
+    const category = (passport.category || user?.degree || '').toUpperCase();
+    const isUG = category.includes('UG') || category.includes('UNDERGRADUATE') || category === 'DIPLOMA';
+
     if (!summary.trim()) {
       errors.summary = 'Abstract text is required before submitting.';
-    } else if (wordCount < 250) {
-      errors.summary = `Abstract is too brief (${wordCount} words). Minimum required length is 250 words.`;
-    } else if (wordCount > 500) {
-      errors.summary = `Abstract exceeds 500 words (${wordCount} words). Maximum length is 500 words.`;
+    } else if (wordCount < 150) {
+      errors.summary = `Abstract is too brief (${wordCount} words). Minimum required length is 150 words.`;
+    } else if (wordCount > 250) {
+      errors.summary = `Abstract exceeds 250 words (${wordCount} words). Maximum length is 250 words.`;
     }
-    if (!file) {
+
+    // PPT is mandatory only for UG category; optional or not required for PG / PPG
+    if (isUG && !file) {
       errors.file = 'Please attach your PPT presentation.';
     }
 
@@ -327,25 +333,23 @@ export const SubmitPage: React.FC = () => {
     setShowWarning(false);
     setFirestoreError(null);
 
-    if (!file) return;
-
     const currentUser = user || getAuthUser();
 
     setFirestoreLoading(true);
     try {
-      // 1. Upload PPT file to Firebase Storage
+      // 1. Upload PPT file to Firebase Storage if provided
       let pptLink = '';
-      if (currentUser?.id) {
+      if (file && currentUser?.id) {
         pptLink = await uploadPPTFile(currentUser.id, file);
       }
 
       // 2. Build the local abstract record
       const newAbstract: Abstract = {
-        id: `PPT-${Date.now().toString().slice(-6)}`,
+        id: `ABS-${Date.now().toString().slice(-6)}`,
         title: title.trim(),
         track: selectedTrack,
-        filename: file.name,
-        size: file.size,
+        filename: file ? file.name : 'Abstract_Only',
+        size: file ? file.size : 0,
         date: new Date().toLocaleDateString('en-IN', {
           day: 'numeric',
           month: 'short',
@@ -353,18 +357,18 @@ export const SubmitPage: React.FC = () => {
         }),
       };
 
-      // 3. Save to Firestore & trigger n8n webhook
+      // 3. Save to Firestore (n8n webhook triggers inside saveProjectSubmission only if isUG)
       if (currentUser?.id) {
         await saveProjectSubmission(currentUser.id, {
           teamName: passport.team || currentUser.name,
           email: currentUser.email,
           track: selectedTrack,
-          category: passport.category || '',
+          category: passport.category || currentUser.degree || 'PG',
           problemStatement: title.trim(),
           solutionSummary: summary.trim(),
-          pptLink,
+          pptLink: pptLink || 'Abstract Only',
           secret: `SECRET-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-          file,
+          file: file || undefined,
         });
       }
 
@@ -634,14 +638,14 @@ export const SubmitPage: React.FC = () => {
             </label>
             <span
               className={`text-[11px] font-mono font-bold ${
-                wordCount >= 250 && wordCount <= 500
+                wordCount >= 150 && wordCount <= 250
                   ? 'text-[#138808]'
-                  : wordCount > 500
+                  : wordCount > 250
                   ? 'text-red-600'
                   : 'text-[#5A5A7A]'
               }`}
             >
-              {wordCount} / 250–500 words
+              {wordCount} / 150–250 words
             </span>
           </div>
           <textarea
@@ -657,7 +661,7 @@ export const SubmitPage: React.FC = () => {
                 });
               }
             }}
-            placeholder="Provide a comprehensive abstract (250–500 words) concisely articulating the research challenge, proposed novelty/methodology, experimental results, and alignment towards the Viksit Bharat 2047 national framework..."
+            placeholder="Provide a comprehensive abstract (150–250 words) concisely articulating the research challenge, proposed novelty/methodology, experimental results, and alignment towards the Viksit Bharat 2047 national framework..."
             className={`w-full px-4 py-3 rounded-xl border text-base sm:text-sm ${
               validationErrors.summary
                 ? 'border-red-500 bg-red-50/30 ring-2 ring-red-400'
@@ -668,7 +672,7 @@ export const SubmitPage: React.FC = () => {
             <p className="text-xs text-red-600 mt-1 font-semibold">{validationErrors.summary}</p>
           )}
           <p className="text-[11px] text-[#5A5A7A] mt-1 italic">
-            Recommended length is between 250 and 500 words for double-blind editorial preliminary review.
+            Recommended length is between 150 and 250 words for preliminary editorial review.
           </p>
         </div>
 

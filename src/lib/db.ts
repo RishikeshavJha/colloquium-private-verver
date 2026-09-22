@@ -266,40 +266,46 @@ export async function saveProjectSubmission(
     _createdAt: serverTimestamp(),
   } satisfies Omit<FirestoreSubmission, "id"> & { _createdAt: ReturnType<typeof serverTimestamp> });
 
-  // Trigger n8n Submission Webhook (1 single request with Authorization header & file attachment)
-  try {
-    const formData = new FormData();
-    if (data.file) {
-      formData.append("file", data.file);
-    }
-    formData.append("userId", uid);
-    formData.append("submissionId", docRef.id);
-    formData.append("email", data.email);
-    formData.append("teamName", data.teamName);
-    formData.append("track", data.track);
-    formData.append("category", data.category);
-    formData.append("problemStatement", data.problemStatement);
-    formData.append("solutionSummary", data.solutionSummary);
-    formData.append("pptLink", data.pptLink);
-    formData.append("secret", data.secret);
-    formData.append("createdAtIST", istString);
+  // Trigger n8n Submission Webhook (Only for UG submissions)
+  const isUG = data.category.toUpperCase().includes('UG') || 
+               data.category.toUpperCase().includes('UNDERGRADUATE') || 
+               data.category.toUpperCase() === 'DIPLOMA';
 
-    fetch(SUBMISSION_WEBHOOK_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": "Bearer your_n8n_bearer_secret_here",
-      },
-      body: formData,
-    }).catch((err) => {
-      console.warn("Standard fetch failed, attempting fallback:", err);
+  if (isUG) {
+    try {
+      const formData = new FormData();
+      if (data.file) {
+        formData.append("file", data.file);
+      }
+      formData.append("userId", uid);
+      formData.append("submissionId", docRef.id);
+      formData.append("email", data.email);
+      formData.append("teamName", data.teamName);
+      formData.append("track", data.track);
+      formData.append("category", data.category);
+      formData.append("problemStatement", data.problemStatement);
+      formData.append("solutionSummary", data.solutionSummary);
+      formData.append("pptLink", data.pptLink);
+      formData.append("secret", data.secret);
+      formData.append("createdAtIST", istString);
+
       fetch(SUBMISSION_WEBHOOK_URL, {
         method: "POST",
-        mode: "no-cors",
+        headers: {
+          "Authorization": "Bearer your_n8n_bearer_secret_here",
+        },
         body: formData,
-      }).catch((e) => console.error("Webhook fallback error:", e));
-    });
-  } catch (err) {
-    console.error("Failed to trigger n8n webhook:", err);
+      }).catch((err) => {
+        console.warn("Standard fetch failed, attempting fallback:", err);
+        fetch(SUBMISSION_WEBHOOK_URL, {
+          method: "POST",
+          mode: "no-cors",
+          body: formData,
+        }).catch((e) => console.error("Webhook fallback error:", e));
+      });
+    } catch (err) {
+      console.error("Failed to trigger n8n webhook:", err);
+    }
   }
 
   return docRef.id;
