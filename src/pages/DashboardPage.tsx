@@ -179,7 +179,7 @@ export const DashboardPage: React.FC = () => {
             PARTICIPANT COMMAND CENTRE
           </div>
           <h1 className="font-display text-xl sm:text-2xl lg:text-4xl font-extrabold text-[#0A2A5E]">
-            Welcome, {leader.name || 'VIKAS Innovator'}
+            Welcome, {leader.name || 'INSPIRE Innovator'}
           </h1>
           <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1">
             {passport.team ? `Delegation: ${passport.team} • ` : ''}
@@ -402,7 +402,7 @@ export const DashboardPage: React.FC = () => {
               <div>
                 <span className="text-xs font-bold text-[#FF6B00] uppercase tracking-wider">Conference Roadmap</span>
                 <h3 className="font-display text-lg sm:text-2xl font-bold text-[#0A2A5E]">
-                  Your VIKAS 2026 Journey
+                  Your INSPIRE Colloquium 2026 Journey
                 </h3>
               </div>
               <span className="text-xs font-bold text-[#138808] bg-[#138808]/10 px-3 py-1 rounded-full flex items-center gap-1">

@@ -82,7 +82,7 @@ export const SubmitPage: React.FC = () => {
           </h2>
 
           <p className="font-sans text-sm text-[#5A5A7A] max-w-md mx-auto leading-relaxed mb-8">
-            Extended abstract submissions are only open to registered teams with an active VIKAS 2026 Innovation Passport. Please complete team registration first.
+            Extended abstract submissions are only open to registered teams with an active INSPIRE Colloquium 2026 Innovation Passport. Please complete team registration first.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

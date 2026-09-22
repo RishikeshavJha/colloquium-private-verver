@@ -128,7 +128,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthProps> = ({
       {/* Pill Badge */}
       <div className="text-center mb-2">
         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-[10px] font-bold tracking-widest text-[#0A2A5E] uppercase">
-          ✦ VIKAS 2026 REGISTRATION
+          ✦ INSPIRE COLLOQUIUM 2026 REGISTRATION
         </span>
       </div>
 
@@ -138,7 +138,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthProps> = ({
           Sign In with Google
         </h3>
         <p className="text-xs text-[#5A5A7A] mt-1.5 max-w-sm mx-auto leading-relaxed">
-          Sign in to continue to VIKAS 2026. Registered scholars redirect to Dashboard; new participants proceed to registration.
+          Sign in to continue to INSPIRE Colloquium 2026. Registered scholars redirect to Dashboard; new participants proceed to registration.
         </p>
       </div>
 

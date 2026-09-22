@@ -18,7 +18,7 @@ export const CommunityPage: React.FC = () => {
           OFFICIAL PARTICIPANT NETWORK
         </div>
         <h1 className="font-display text-2xl sm:text-3xl lg:text-5xl font-extrabold text-[#0A2A5E]">
-          VIKAS WhatsApp Community Hub
+          INSPIRE Colloquium WhatsApp Community Hub
         </h1>
         <p className="text-xs sm:text-sm text-[#5A5A7A] max-w-xl mx-auto mt-2">
           Real-time coordination channel connecting authors, mentors, jury panels, and the IEEE SLRTCE organizing committee.

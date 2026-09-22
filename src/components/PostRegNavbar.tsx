@@ -72,7 +72,7 @@ const PostRegNavbar = () => {
           <div className="h-6 sm:h-7 w-px bg-white/30 hidden sm:block" />
           <Link to="/" className="hidden sm:flex flex-col">
             <span className="text-[11px] font-extrabold tracking-widest text-amber-400 uppercase leading-none">
-              VIKAS 2026
+              INSPIRE 2026
             </span>
             <span className="text-[8.5px] text-white/75 font-sans leading-tight">
               IEEE SLRTCE Conclave

@@ -316,7 +316,7 @@ export const RegisterPage: React.FC = () => {
       }
       const cleanEmail = leader.email.trim().toLowerCase();
       if (!data.registered && cleanEmail && isEmailRegistered(cleanEmail)) {
-        errs.email = 'This email is already registered in VIKAS 2026. Please log in to your dashboard or use another email.';
+        errs.email = 'This email is already registered in INSPIRE Colloquium 2026. Please log in to your dashboard or use another email.';
       }
       setErrors(errs);
       return Object.keys(errs).length === 0;
@@ -536,7 +536,7 @@ export const RegisterPage: React.FC = () => {
 
             {/* Pill Tag */}
             <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-[10px] sm:text-[11px] font-bold tracking-widest text-[#0A2A5E] uppercase mb-3 sm:mb-4">
-              ✦ VIKAS 2026 REGISTRATION
+              ✦ INSPIRE COLLOQUIUM 2026 REGISTRATION
             </div>
 
             {/* ONE IMAGE ONLY - Sized prominently */}
@@ -624,7 +624,7 @@ export const RegisterPage: React.FC = () => {
         </div>
 
         <h1 className="font-display text-lg sm:text-2xl font-extrabold text-[#0A2A5E] leading-tight">
-          VIKAS 2026 Registration Ledger
+          INSPIRE Colloquium 2026 Registration Ledger
         </h1>
         <p className="text-[11px] sm:text-xs text-[#5A5A7A] max-w-lg mx-auto mt-0.5 hidden sm:block">
           Complete the official delegation profile to generate your Innovation Passport and unlock abstract submissions.
@@ -692,12 +692,12 @@ export const RegisterPage: React.FC = () => {
 
         {/* Subtle Watermark */}
         <div className="absolute top-4 right-6 text-[#C8B89A]/20 font-black text-4xl sm:text-6xl select-none pointer-events-none font-display">
-          VIKAS
+          INSPIRE
         </div>
 
         {/* ================= IN-BETWEEN TRANSITION: QR ASSEMBLY SEQUENCE ================= */}
         {isAssemblingQR && (
-          <div className="qr-build-sequence py-8 px-4" aria-label="Constructing the VIKAS community connection">
+          <div className="qr-build-sequence py-8 px-4" aria-label="Constructing the INSPIRE community connection">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#FF6B00]/10 border border-[#FF6B00]/30 text-[#FF6B00] text-[11px] font-bold tracking-widest uppercase mb-3">
               <span className="w-2 h-2 rounded-full bg-[#FF6B00] animate-ping" />
               CONNECTION / IN PROGRESS
@@ -729,7 +729,7 @@ export const RegisterPage: React.FC = () => {
 
             <h2 className="font-display text-2xl sm:text-4xl font-bold text-[#0A2A5E] tracking-tight mb-2">
               Building the <br className="hidden sm:inline" />
-              <span className="text-[#FF6B00] italic">VIKAS network.</span>
+              <span className="text-[#FF6B00] italic">INSPIRE network.</span>
             </h2>
 
             <p className="text-xs sm:text-sm text-[#0A2A5E]/75 max-w-md mx-auto leading-relaxed">
@@ -761,14 +761,14 @@ export const RegisterPage: React.FC = () => {
 
         {/* ================= IN-BETWEEN TRANSITION: PROFILE BUILDING SEQUENCE ================= */}
         {isBuildingProfile && (
-          <div className="profile-build-sequence py-8 px-4" aria-label="Creating your VIKAS participant identity">
+          <div className="profile-build-sequence py-8 px-4" aria-label="Creating your INSPIRE participant identity">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#138808]/10 border border-[#138808]/30 text-[#138808] text-[11px] font-bold tracking-widest uppercase mb-4">
               <span className="w-2 h-2 rounded-full bg-[#138808] animate-ping" />
               PROFILE / ASSEMBLING
             </div>
 
             <h2 className="font-display text-2xl sm:text-4xl font-bold text-[#0A2A5E] tracking-tight mb-2">
-              Your VIKAS identity <br className="hidden sm:inline" />
+              Your INSPIRE identity <br className="hidden sm:inline" />
               <span className="text-[#138808] italic">is taking shape.</span>
             </h2>
 
@@ -785,7 +785,7 @@ export const RegisterPage: React.FC = () => {
                 {/* Seal stamp drops in */}
                 <div className="absolute top-4 right-4 w-16 h-16 rounded-full border-2 border-dashed border-[#FF6B00] flex flex-col items-center justify-center select-none pointer-events-none animate-seal-drop">
                   <span className="text-[7px] font-black tracking-widest text-[#FF6B00] uppercase">IEEE SLRTCE</span>
-                  <span className="text-[10px] font-black text-[#0A2A5E]">VIKAS</span>
+                  <span className="text-[10px] font-black text-[#0A2A5E]">INSPIRE</span>
                   <span className="text-[8px] font-bold text-[#138808]">2026</span>
                 </div>
 
@@ -837,7 +837,7 @@ export const RegisterPage: React.FC = () => {
                 <div className="mt-3 pt-2 border-t border-dashed border-gray-300 flex items-center justify-between">
                   <div className="animate-barcode-print overflow-hidden">
                     <div className="font-mono text-[7px] text-gray-400 tracking-widest mb-0.5">
-                      VIKAS-2026 // SLRTCE // AUTHORIZED
+                      INSPIRE-2026 // SLRTCE // AUTHORIZED
                     </div>
                     <div className="h-4 w-full bg-[repeating-linear-gradient(90deg,#0A2A5E,#0A2A5E_2px,transparent_2px,transparent_4px,#0A2A5E_4px,#0A2A5E_6px,transparent_6px,transparent_7px)]" />
                   </div>
@@ -1438,7 +1438,7 @@ export const RegisterPage: React.FC = () => {
                 Step 4 of 5 • Conclave Communications
               </span>
               <h2 className="font-display text-xl sm:text-3xl font-bold text-[#0A2A5E]">
-                Join the Official VIKAS Community
+                Join the Official INSPIRE Community
               </h2>
               <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1 max-w-xl mx-auto">
                 Stay synchronized with jury announcements, schedule releases, IEEE templates, and peer networking.
@@ -1458,7 +1458,7 @@ export const RegisterPage: React.FC = () => {
                 <CheckCircle2 className="w-4 h-4" /> OFFICIAL DELEGATE REGISTRATION COMPLETED
               </div>
               <h2 className="font-display text-xl sm:text-4xl font-bold text-[#0A2A5E]">
-                VIKAS Digital Innovation Passport
+                INSPIRE Digital Innovation Passport
               </h2>
               <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1">
                 Your official participant credential has been filed in the IEEE SLRTCE conference registry.
@@ -1478,7 +1478,7 @@ export const RegisterPage: React.FC = () => {
               {/* Postmark stamp seal */}
               <div className="absolute top-4 right-4 w-16 h-16 sm:w-24 sm:h-24 rounded-full border-2 border-dashed border-[#FF6B00] flex flex-col items-center justify-center rotate-12 select-none pointer-events-none opacity-85 shadow-xs">
                 <span className="text-[8px] font-black tracking-widest text-[#FF6B00] uppercase">IEEE SLRTCE</span>
-                <span className="text-xs sm:text-sm font-black text-[#0A2A5E]">VIKAS</span>
+                <span className="text-xs sm:text-sm font-black text-[#0A2A5E]">INSPIRE</span>
                 <span className="text-[9px] font-bold text-[#138808]">2026</span>
                 <span className="text-[7px] text-gray-500 uppercase">OFFICIAL</span>
               </div>
@@ -1568,7 +1568,7 @@ export const RegisterPage: React.FC = () => {
               <div className="mt-6 pt-4 border-t-2 border-dashed border-gray-300 flex items-center justify-between relative z-10">
                 <div className="space-y-0.5">
                   <div className="font-mono text-[9px] text-gray-400 tracking-widest">
-                    VIKAS-2026 // SLRTCE // BHARAT-CONCLAVE // AUTHORIZED
+                    INSPIRE-2026 // SLRTCE // BHARAT-CONCLAVE // AUTHORIZED
                   </div>
                   <div className="h-6 w-44 bg-[repeating-linear-gradient(90deg,#0A2A5E,#0A2A5E_2px,transparent_2px,transparent_4px,#0A2A5E_4px,#0A2A5E_7px,transparent_7px,transparent_8px)] opacity-70" />
                 </div>
