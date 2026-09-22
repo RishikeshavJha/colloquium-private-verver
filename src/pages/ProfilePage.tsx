@@ -13,6 +13,7 @@ import {
   Lock,
   ArrowRight,
   AlertCircle,
+  Users,
 } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
@@ -27,7 +28,7 @@ export const ProfilePage: React.FC = () => {
     setUser(getAuthUser());
   }, []);
 
-  const isUnlocked = !!user || !!passport.registered;
+  const isUnlocked = !!passport.registered;
 
   if (!isUnlocked) {
     return (
@@ -46,7 +47,7 @@ export const ProfilePage: React.FC = () => {
           </h2>
 
           <p className="font-sans text-sm text-[#5A5A7A] max-w-md mx-auto leading-relaxed mb-8">
-            Team roster editing and delegation profiles are locked for first-time visitors. Please register your team first to configure your participant profile.
+            Profile editing is available after registration. Please register first to view and edit your profile details.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -67,7 +68,7 @@ export const ProfilePage: React.FC = () => {
 
           <div className="mt-8 pt-6 border-t border-[#C8B89A]/40">
             <Link to="/" className="text-xs font-semibold text-[#5A5A7A] hover:text-[#0A2A5E]">
-              ← Return to Conclave Homepage
+              ← Return to Home
             </Link>
           </div>
         </div>
@@ -95,6 +96,14 @@ export const ProfilePage: React.FC = () => {
       copy[idx] = { ...copy[idx], [field]: formatted };
       return { ...prev, people: copy };
     });
+    const errKey = `member_${idx}_${field}`;
+    if (profileErrors[errKey]) {
+      setProfileErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[errKey];
+        return copy;
+      });
+    }
   };
 
   const addMember = () => {
@@ -115,6 +124,14 @@ export const ProfilePage: React.FC = () => {
   };
 
   const removeMember = (idx: number) => {
+    if (passport.category === 'UG' && passport.people.length <= 2) {
+      setProfileErrors((prev) => ({
+        ...prev,
+        team_min: 'UG / Diploma teams require at least 2 members. You cannot remove the only teammate. Edit their details instead.',
+      }));
+      setShowErrorBanner(true);
+      return;
+    }
     if (passport.people.length <= 1) return;
     setPassport((prev) => ({
       ...prev,
@@ -133,7 +150,11 @@ export const ProfilePage: React.FC = () => {
     });
 
     if (passport.category === 'UG' && !passport.team?.trim()) {
-      errs['team'] = 'Team Delegation Name is required for UG / Diploma entries.';
+      errs['team'] = 'Team Name is required for UG / Diploma entries.';
+    }
+
+    if (passport.category === 'UG' && passport.people.length < 2) {
+      errs['team_min'] = 'UG / Diploma teams require at least 2 members (1 leader + at least 1 teammate). Please add at least 1 teammate.';
     }
 
     passport.people.slice(1).forEach((member, idx) => {
@@ -194,18 +215,18 @@ export const ProfilePage: React.FC = () => {
   const trackInfo = tracks.find((t) => t.name === passport.track);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12">
-      {/* Header */}
-      <div className="mb-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12 w-full flex flex-col items-center">
+      {/* Header - Centered hero banner */}
+      <div className="mb-8 w-full max-w-2xl mx-auto flex flex-col items-center text-center bg-[#FAF6EE]/90 backdrop-blur-[2px] p-4 sm:p-5 rounded-2xl border border-[#C8B89A]/30 shadow-xs">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-xs font-bold tracking-widest text-[#0A2A5E] uppercase mb-2">
           <Sparkles className="w-3 h-3 text-[#FF6B00]" />
-          PARTICIPANT PROFILE & PASSPORT CREDENTIALS
+          PARTICIPANT PROFILE
         </div>
         <h1 className="font-display text-2xl sm:text-3xl sm:text-4xl font-extrabold text-[#0A2A5E]">
-          Participant Profile & Identity
+          Participant Profile
         </h1>
-        <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1">
-          Review, update, and manage your delegate credentials and co-author directory for conference records.
+        <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1 text-center">
+          Review and update your profile details and team members for event records.
         </p>
       </div>
 
@@ -237,6 +258,7 @@ export const ProfilePage: React.FC = () => {
                     {profileErrors['leader_department'] && <li>{profileErrors['leader_department']}</li>}
                     {profileErrors['leader_year'] && <li>{profileErrors['leader_year']}</li>}
                     {profileErrors['team'] && <li>{profileErrors['team']}</li>}
+                    {profileErrors['team_min'] && <li>{profileErrors['team_min']}</li>}
                   </ul>
                 </div>
               </div>
@@ -319,7 +341,7 @@ export const ProfilePage: React.FC = () => {
             {/* Lead Participant Info */}
             <div className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
               <h3 className="font-display text-base font-bold text-[#0A2A5E] border-b border-[#C8B89A]/40 pb-2">
-                Lead Author / Primary Delegate
+                Team Leader / Primary Participant
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -522,68 +544,227 @@ export const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Co-Authors Directory - UG Only */}
+            {/* Team Participants Directory - UG Only */}
             {passport.category === 'UG' ? (
-              <div className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
-                <div className="flex items-center justify-between border-b border-[#C8B89A]/40 pb-2">
-                  <h3 className="font-display text-base font-bold text-[#0A2A5E]">
-                    Co-Authors ({passport.people.length - 1})
-                  </h3>
+              <div className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-2xl p-4 sm:p-6 shadow-sm space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#C8B89A]/40 pb-3 gap-2">
+                  <div>
+                    <h3 className="font-display text-base sm:text-lg font-bold text-[#0A2A5E]">
+                      Team Participants ({passport.people.length - 1})
+                    </h3>
+                    <p className="text-xs text-[#5A5A7A] mt-0.5">
+                      UG / Diploma teams can have 2 to 4 members. Enter details for all participants.
+                    </p>
+                  </div>
                   {passport.people.length < 4 && (
                     <button
                       type="button"
                       onClick={addMember}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-white bg-[#0A2A5E] hover:bg-[#082046] px-3 py-1.5 rounded-lg"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#0A2A5E] hover:bg-[#082046] px-3.5 py-2 rounded-xl shadow-sm cursor-pointer transition-all active:scale-95 self-start sm:self-auto min-h-[38px]"
                     >
-                      <Plus className="w-3.5 h-3.5" /> Add Member
+                      <Plus className="w-4 h-4" /> Add Participant
                     </button>
                   )}
                 </div>
 
                 {passport.people.length === 1 ? (
-                  <p className="text-xs text-gray-500 italic py-2">
-                    No co-authors added. You are registered as sole author.
-                  </p>
+                  <div className="text-center py-6 px-4 border-2 border-dashed border-amber-300 rounded-xl bg-amber-50/70 space-y-2.5">
+                    <Users className="w-9 h-9 text-amber-600 mx-auto" />
+                    <div>
+                      <h4 className="font-bold text-sm text-amber-950">Team Incomplete: At Least 2 Members Required</h4>
+                      <p className="text-xs text-amber-800 max-w-md mx-auto mt-0.5">
+                        UG / Diploma tracks require teams of 2 to 4 members. You are currently the only person in this team. Please add your teammate(s).
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addMember}
+                      className="mt-1 inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#FF6B00] hover:bg-[#E65A00] px-4 py-2.5 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer min-h-[40px]"
+                    >
+                      <Plus className="w-4 h-4" /> Add Team Participant
+                    </button>
+                  </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {passport.people.slice(1).map((m, idx) => {
                       const actualIdx = idx + 1;
+                      const nameErr = profileErrors[`member_${actualIdx}_name`];
+                      const emailErr = profileErrors[`member_${actualIdx}_email`];
+                      const mobileErr = profileErrors[`member_${actualIdx}_mobile`];
+                      const yearErr = profileErrors[`member_${actualIdx}_year`];
+                      const instErr = profileErrors[`member_${actualIdx}_institution`];
+                      const deptErr = profileErrors[`member_${actualIdx}_department`];
+
                       return (
                         <div
                           key={actualIdx}
-                          className="p-3 bg-white border border-[#C8B89A] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                          className="p-4 sm:p-5 bg-white border border-[#C8B89A] rounded-xl shadow-sm space-y-4 relative"
                         >
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-grow">
-                            <input
-                              type="text"
-                              value={m.name}
-                              onChange={(e) => handleMemberChange(actualIdx, 'name', e.target.value)}
-                              placeholder="Name"
-                              className="px-2 py-2 sm:py-1 border border-gray-200 rounded text-sm sm:text-xs min-h-[44px] sm:min-h-0"
-                            />
-                            <input
-                              type="email"
-                              value={m.email}
-                              onChange={(e) => handleMemberChange(actualIdx, 'email', e.target.value)}
-                              placeholder="Personal Email ID"
-                              className="px-2 py-2 sm:py-1 border border-gray-200 rounded text-sm sm:text-xs min-h-[44px] sm:min-h-0"
-                            />
-                            <input
-                              type="text"
-                              value={m.mobile}
-                              onChange={(e) => handleMemberChange(actualIdx, 'mobile', e.target.value)}
-                              placeholder="Mobile"
-                              className="px-2 py-2 sm:py-1 border border-gray-200 rounded text-sm sm:text-xs min-h-[44px] sm:min-h-0"
-                            />
+                          <div className="flex items-center justify-between border-b border-[#C8B89A]/30 pb-2.5">
+                            <span className="text-xs font-bold uppercase tracking-wider text-[#0A2A5E] flex items-center gap-1.5">
+                              <Users className="w-3.5 h-3.5 text-[#FF6B00]" />
+                              Participant #{actualIdx + 1}
+                            </span>
+                            <button
+                              type="button"
+                              disabled={passport.people.length <= 2}
+                              onClick={() => removeMember(actualIdx)}
+                              className={`text-xs font-bold flex items-center gap-1 min-h-[36px] px-2.5 py-1 rounded-lg transition-colors ${
+                                passport.people.length <= 2
+                                  ? 'text-gray-400 bg-gray-100 cursor-not-allowed opacity-60'
+                                  : 'text-red-500 hover:text-red-700 hover:bg-red-50 cursor-pointer'
+                              }`}
+                              title={
+                                passport.people.length <= 2
+                                  ? 'UG teams require minimum 2 members. You cannot remove the last teammate.'
+                                  : 'Remove Participant'
+                              }
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>{passport.people.length <= 2 ? 'Min 2 Required' : 'Remove'}</span>
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => removeMember(actualIdx)}
-                            className="p-2 sm:p-1 text-red-500 hover:text-red-700 ml-0 sm:ml-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center self-end sm:self-auto"
-                            title="Remove Member"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Full Name */}
+                            <div>
+                              <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
+                                Full Name <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={m.name}
+                                onChange={(e) => handleMemberChange(actualIdx, 'name', e.target.value)}
+                                placeholder="Full Name"
+                                className={`w-full px-3 py-2.5 rounded-lg border text-sm sm:text-xs font-semibold min-h-[44px] ${
+                                  nameErr
+                                    ? 'border-red-500 bg-red-50/30 ring-2 ring-red-400'
+                                    : 'border-[#C8B89A] bg-white'
+                                }`}
+                              />
+                              {nameErr && (
+                                <p className="text-[11px] text-red-600 mt-1 font-semibold">{nameErr}</p>
+                              )}
+                            </div>
+
+                            {/* Email */}
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="block text-[11px] font-bold uppercase text-[#0A2A5E]">
+                                  Email Address <span className="text-red-500">*</span>
+                                </label>
+                                <span className="text-[10px] text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                  Personal email ID
+                                </span>
+                              </div>
+                              <input
+                                type="email"
+                                value={m.email}
+                                onChange={(e) => handleMemberChange(actualIdx, 'email', e.target.value)}
+                                placeholder="Enter personal email ID"
+                                className={`w-full px-3 py-2.5 rounded-lg border text-sm sm:text-xs min-h-[44px] ${
+                                  emailErr
+                                    ? 'border-red-500 bg-red-50/30 ring-2 ring-red-400'
+                                    : 'border-[#C8B89A] bg-white'
+                                }`}
+                              />
+                              {emailErr && (
+                                <p className="text-[11px] text-red-600 mt-1 font-semibold">{emailErr}</p>
+                              )}
+                            </div>
+
+                            {/* WhatsApp Mobile */}
+                            <div>
+                              <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
+                                WhatsApp Mobile <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="tel"
+                                maxLength={10}
+                                value={m.mobile}
+                                onChange={(e) =>
+                                  handleMemberChange(actualIdx, 'mobile', e.target.value.replace(/\D/g, ''))
+                                }
+                                placeholder="10-digit mobile"
+                                className={`w-full px-3 py-2.5 rounded-lg border text-sm sm:text-xs min-h-[44px] ${
+                                  mobileErr
+                                    ? 'border-red-500 bg-red-50/30 ring-1 ring-red-400'
+                                    : 'border-[#C8B89A] bg-white'
+                                }`}
+                              />
+                              {mobileErr && (
+                                <p className="text-[11px] text-red-600 mt-1 font-semibold">{mobileErr}</p>
+                              )}
+                            </div>
+
+                            {/* Year of Study */}
+                            <div>
+                              <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
+                                Year of Study <span className="text-red-500">*</span>
+                              </label>
+                              <select
+                                value={m.year}
+                                onChange={(e) => handleMemberChange(actualIdx, 'year', e.target.value)}
+                                className={`w-full px-3 py-2.5 rounded-lg border text-sm sm:text-xs min-h-[44px] ${
+                                  yearErr
+                                    ? 'border-red-500 bg-red-50/30 ring-1 ring-red-400'
+                                    : 'border-[#C8B89A] bg-white'
+                                }`}
+                              >
+                                <option value="">Select Year</option>
+                                {yearOptionsFor(passport.category).map((y) => (
+                                  <option key={y} value={y}>
+                                    {y}
+                                  </option>
+                                ))}
+                              </select>
+                              {yearErr && (
+                                <p className="text-[11px] text-red-600 mt-1 font-semibold">{yearErr}</p>
+                              )}
+                            </div>
+
+                            {/* College / Institution */}
+                            <div>
+                              <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
+                                College / Institution <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={m.institution}
+                                onChange={(e) => handleMemberChange(actualIdx, 'institution', e.target.value)}
+                                placeholder="Institution name"
+                                className={`w-full px-3 py-2.5 rounded-lg border text-sm sm:text-xs min-h-[44px] ${
+                                  instErr
+                                    ? 'border-red-500 bg-red-50/30 ring-1 ring-red-400'
+                                    : 'border-[#C8B89A] bg-white'
+                                }`}
+                              />
+                              {instErr && (
+                                <p className="text-[11px] text-red-600 mt-1 font-semibold">{instErr}</p>
+                              )}
+                            </div>
+
+                            {/* Department */}
+                            <div>
+                              <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
+                                Department <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={m.department}
+                                onChange={(e) => handleMemberChange(actualIdx, 'department', e.target.value)}
+                                placeholder="Department / Branch"
+                                className={`w-full px-3 py-2.5 rounded-lg border text-sm sm:text-xs min-h-[44px] ${
+                                  deptErr
+                                    ? 'border-red-500 bg-red-50/30 ring-1 ring-red-400'
+                                    : 'border-[#C8B89A] bg-white'
+                                }`}
+                              />
+                              {deptErr && (
+                                <p className="text-[11px] text-red-600 mt-1 font-semibold">{deptErr}</p>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       );
                     })}
@@ -592,9 +773,9 @@ export const ProfilePage: React.FC = () => {
               </div>
             ) : (
               <div className="bg-[#FAF6EE] border-2 border-dashed border-[#C8B89A] rounded-2xl p-6 text-center shadow-sm">
-                <h3 className="font-display text-base font-bold text-[#0A2A5E]">Individual Participation Tier</h3>
+                <h3 className="font-display text-base font-bold text-[#0A2A5E]">Individual Registration</h3>
                 <p className="text-xs text-[#5A5A7A] max-w-md mx-auto mt-1">
-                  You are registered under an individual research classification ({passport.category || 'PG/PPG'}). Co-author delegations are restricted to UG / Diploma teams.
+                  You are registered as an individual participant ({passport.category || 'PG/PPG'}). Additional team members are only for UG / Diploma teams.
                 </p>
               </div>
             )}
@@ -619,7 +800,7 @@ export const ProfilePage: React.FC = () => {
         <div className="lg:col-span-5">
           <div className="sticky top-24 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Live Passport Preview</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Live Pass Preview</span>
               <span className="text-[10px] font-mono text-gray-400">Updates as you type</span>
             </div>
 
@@ -631,7 +812,7 @@ export const ProfilePage: React.FC = () => {
                 <div className="h-6 w-px bg-gray-300" />
                 <img src="/ieee-slrtce-logo.png" alt="IEEE" className="h-8 w-auto object-contain" />
                 <div className="ml-auto text-right">
-                  <span className="text-[9px] font-mono text-gray-400 uppercase block">Passport No.</span>
+                  <span className="text-[9px] font-mono text-gray-400 uppercase block">Pass ID</span>
                   <span className="font-mono text-xs font-black text-[#0A2A5E]">{registrationId}</span>
                 </div>
               </div>
@@ -639,7 +820,7 @@ export const ProfilePage: React.FC = () => {
               {/* Live Card Content */}
               <div className="space-y-3 text-xs">
                 <div>
-                  <span className="text-[9px] uppercase font-bold text-gray-400 block">Author / Delegate</span>
+                  <span className="text-[9px] uppercase font-bold text-gray-400 block">Team Leader / Participant</span>
                   <h4 className="font-bold text-sm text-[#0A2A5E]">{leader.name || 'Your Full Name'}</h4>
                   <p className="text-[11px] text-gray-500">{leader.email || 'email@domain.com'}</p>
                 </div>
@@ -650,13 +831,13 @@ export const ProfilePage: React.FC = () => {
                     <span className="font-bold text-[#FF6B00]">{passport.category === 'UG' ? 'UG / Diploma' : passport.category || 'Not chosen'}</span>
                   </div>
                   <div>
-                    <span className="text-[9px] uppercase font-bold text-gray-400 block">Year / Status</span>
+                    <span className="text-[9px] uppercase font-bold text-gray-400 block">Year of Study</span>
                     <span className="font-bold text-[#0A2A5E]">{leader.year || 'N/A'}</span>
                   </div>
                 </div>
 
                 <div>
-                  <span className="text-[9px] uppercase font-bold text-gray-400 block">Research Track</span>
+                  <span className="text-[9px] uppercase font-bold text-gray-400 block">Event Track</span>
                   <span className="font-bold text-xs text-[#0A2A5E] block">
                     {passport.track || 'No track selected'}
                   </span>
@@ -666,7 +847,7 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 <div>
-                  <span className="text-[9px] uppercase font-bold text-gray-400 block">Institution</span>
+                  <span className="text-[9px] uppercase font-bold text-gray-400 block">College / Institute</span>
                   <span className="font-semibold text-xs text-[#0A2A5E] block">
                     {leader.institution || 'Affiliated Institution'}
                   </span>
@@ -675,24 +856,28 @@ export const ProfilePage: React.FC = () => {
 
                 {passport.category === 'UG' && passport.team && (
                   <div>
-                    <span className="text-[9px] uppercase font-bold text-gray-400 block">Team Delegation</span>
+                    <span className="text-[9px] uppercase font-bold text-gray-400 block">Team Name</span>
                     <span className="font-bold text-xs text-[#0A2A5E]">{passport.team}</span>
                   </div>
                 )}
 
                 <div>
                   <span className="text-[9px] uppercase font-bold text-gray-400 block">
-                    {passport.category === 'UG' ? 'Team Strength' : 'Participation'}
+                    {passport.category === 'UG' ? 'Team Size' : 'Participation Type'}
                   </span>
                   <span className="font-bold text-xs text-[#0A2A5E]">
-                    {passport.category === 'UG' ? `${passport.people.length} Member(s)` : '1 Member (Individual)'}
+                    {passport.category === 'UG'
+                      ? passport.people.length < 2
+                        ? '1 Member (Incomplete Team • Min 2 Required)'
+                        : `${passport.people.length} Member(s)`
+                      : '1 Member (Solo Participation)'}
                   </span>
                 </div>
 
                 {passport.category === 'UG' && passport.people.length > 1 && (
                   <div className="pt-2 border-t border-gray-100">
                     <span className="text-[9px] uppercase font-bold text-gray-400 block mb-1">
-                      Co-Authors ({passport.people.length - 1})
+                      Team Participants ({passport.people.length - 1})
                     </span>
                     <div className="flex flex-wrap gap-1">
                       {passport.people.slice(1).map((p, i) => (
@@ -709,18 +894,18 @@ export const ProfilePage: React.FC = () => {
               <div className="mt-5 pt-3 border-t-2 border-dashed border-gray-200 flex items-end justify-between">
                 <div className="space-y-1">
                   <div className="h-5 w-32 sm:w-36 bg-[repeating-linear-gradient(90deg,#0A2A5E,#0A2A5E_2px,transparent_2px,transparent_4px,#0A2A5E_4px,#0A2A5E_6px,transparent_6px,transparent_7px)] opacity-60" />
-                  <span className="text-[8px] font-mono text-gray-400 block tracking-wider">OFFICIAL PASSPORT CODE</span>
+                  <span className="text-[8px] font-mono text-gray-400 block tracking-wider">OFFICIAL EVENT CODE</span>
                 </div>
 
                 <div className="flex flex-col items-center gap-1 shrink-0">
-                  {/* Circular Official Stamp placed right above Valid Delegate */}
+                  {/* Circular Official Stamp placed right above Valid Pass */}
                   <div className="w-16 h-16 rounded-full border-2 border-dashed border-[#FF6B00] flex flex-col items-center justify-center rotate-6 select-none pointer-events-none bg-[#FF6B00]/5 shadow-xs">
                     <span className="text-[6.5px] font-black text-[#FF6B00] uppercase tracking-wider">IEEE SLRTCE</span>
                     <span className="text-[11px] font-black text-[#0A2A5E] leading-tight">INSPIRE</span>
                     <span className="text-[7.5px] font-bold text-[#138808]">2026</span>
                   </div>
                   <span className="text-[10px] font-bold text-[#138808] flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" /> Valid Delegate
+                    <ShieldCheck className="w-3 h-3" /> Valid Pass
                   </span>
                 </div>
               </div>

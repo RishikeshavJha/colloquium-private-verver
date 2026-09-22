@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import { loadPassport, savePassport, emptyPerson, getAuthUser, WHATSAPP_LINK, type Passport } from '../utils/storage';
 import { getUserSubmissions, type FirestoreSubmission } from '../lib/db';
 import { tracks } from '../data/tracks';
+import { useInspireBackground } from '../context/InspireBackgroundContext';
 import {
   FileText,
   Upload,
   User,
   Users,
-  CheckCircle2,
   Clock,
   ExternalLink,
   AlertCircle,
@@ -32,6 +32,7 @@ const trackThemeImages: Record<string, { image: string; color: string }> = {
 };
 
 export const DashboardPage: React.FC = () => {
+  useInspireBackground('quiet');
   const [passport, setPassport] = useState<Passport>(() => loadPassport());
   const [user, setUser] = useState(() => getAuthUser());
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 });
@@ -51,6 +52,24 @@ export const DashboardPage: React.FC = () => {
     if (currentUser?.id) {
       getUserSubmissions(currentUser.id).then((subs) => {
         setFirestoreSubmissions(subs);
+        if (subs && subs.length > 0) {
+          const currentP = loadPassport();
+          if ((!currentP.abstracts || currentP.abstracts.length === 0) || !currentP.track) {
+            currentP.abstracts = currentP.abstracts?.length ? currentP.abstracts : subs.map(s => ({
+              id: s.id,
+              title: s.problemStatement || s.track,
+              track: s.track,
+              filename: (s.pptLink && s.pptLink !== 'Abstract Only') ? 'Presentation_File.pdf' : 'Abstract_Only',
+              size: 0,
+              date: s.createdAtIST || new Date().toLocaleDateString('en-IN')
+            }));
+            if (!currentP.track && subs[0]?.track) {
+              currentP.track = subs[0].track;
+            }
+            savePassport(currentP);
+            setPassport(currentP);
+          }
+        }
       }).catch(err => {
         console.error("Failed to load firestore submissions", err);
       });
@@ -77,19 +96,19 @@ export const DashboardPage: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const isUnlocked = !!user || !!passport.registered;
+  const isUnlocked = !!passport.registered;
 
-  // Render locked screen if neither logged in nor registered
+  // Render locked screen if registration is not completed
   if (!isUnlocked) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <div className="bg-white rounded-3xl border-2 border-[#C8B89A] p-8 sm:p-12 shadow-2xl relative overflow-hidden">
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center w-full flex flex-col items-center select-none">
+        <div className="bg-[#FFFDF9]/95 rounded-3xl border-2 border-[#C8B89A] p-8 sm:p-12 shadow-2xl relative overflow-hidden backdrop-blur-sm w-full">
           <div className="w-16 h-16 rounded-2xl bg-[#0A2A5E] text-amber-400 flex items-center justify-center mx-auto mb-5 shadow-lg">
             <Lock className="w-8 h-8" />
           </div>
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold uppercase tracking-widest mb-3">
-            PORTAL ACCESS LOCKED
+            PORTAL ACCESS LOCKED · REGISTRATION REQUIRED
           </div>
 
           <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#0A2A5E] mb-3">
@@ -97,7 +116,7 @@ export const DashboardPage: React.FC = () => {
           </h2>
 
           <p className="font-sans text-sm text-[#5A5A7A] max-w-md mx-auto leading-relaxed mb-8">
-            The Participant Dashboard, Innovation Passport, and Abstract Submission Portal are locked for first-time delegates. Please complete your registration to unlock your team portal.
+            The Participant Dashboard, Event Pass, and Submission Portal are available after registration is completed. Please complete your registration to access your dashboard.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -108,17 +127,11 @@ export const DashboardPage: React.FC = () => {
               <span>Complete Registration Now</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link
-              to="/login"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#FAF6EE] hover:bg-white text-[#0A2A5E] border-2 border-[#C8B89A] text-sm font-bold px-6 py-3 rounded-xl transition-all"
-            >
-              <span>Existing User? Sign In</span>
-            </Link>
           </div>
 
           <div className="mt-8 pt-6 border-t border-[#C8B89A]/40">
             <Link to="/" className="text-xs font-semibold text-[#5A5A7A] hover:text-[#0A2A5E]">
-              ← Return to Conclave Homepage
+              ← Return to Home
             </Link>
           </div>
         </div>
@@ -127,9 +140,54 @@ export const DashboardPage: React.FC = () => {
   }
 
   const leader = passport.people[0] || emptyPerson();
-  const trackInfo = tracks.find((t) => t.name === passport.track);
-  const trackTheme = trackThemeImages[passport.track] || { image: '/themes/ai_ml.jpg', color: '#0A2A5E' };
-  const hasAbstracts = passport.abstracts && passport.abstracts.length > 0;
+  const effectiveTrack = passport.track || (firestoreSubmissions[0]?.track) || '';
+  const trackInfo = tracks.find((t) => t.name === effectiveTrack);
+  const trackTheme = trackThemeImages[effectiveTrack] || { image: '/themes/ai_ml.jpg', color: '#0A2A5E' };
+  const hasSubmitted = Boolean(
+    (passport.abstracts && passport.abstracts.length > 0) ||
+    firestoreSubmissions.length > 0
+  );
+  const hasAbstracts = hasSubmitted;
+
+  // Helper to validate whether a URL points to an actual uploaded file
+  const isValidSubmissionFileUrl = (url?: string | null): boolean => {
+    if (!url) return false;
+    const trimmed = url.trim();
+    if (!trimmed || trimmed === 'Abstract Only' || trimmed === 'undefined' || trimmed === 'null' || trimmed === 'None' || trimmed === 'N/A') {
+      return false;
+    }
+    return trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('blob:') || trimmed.startsWith('data:');
+  };
+
+  const categoryMeta = {
+    UG: {
+      title: 'UG / Diploma',
+      track: 'Ideathon Track',
+      rule: 'Teams of 2 to 4',
+      badge: '/ug-category-emblem.jpg',
+      color: '#FF6B00',
+    },
+    PG: {
+      title: 'Postgraduate (PG)',
+      track: 'Research Track',
+      rule: 'Solo Participation',
+      badge: '/pg-category-emblem.jpg',
+      color: '#0A2A5E',
+    },
+    PPG: {
+      title: 'Post-PG / PhD',
+      track: 'Research Track',
+      rule: 'Solo Participation',
+      badge: '/ppg-category-emblem.jpg',
+      color: '#138808',
+    },
+  }[(passport.category as 'UG' | 'PG' | 'PPG')] || {
+    title: passport.category || 'Not Selected',
+    track: 'Open Track',
+    rule: 'Participation',
+    badge: '/ug-category-emblem.jpg',
+    color: '#0A2A5E',
+  };
 
   const isRegistered = !!passport.category && (passport.registered || !!leader.name);
 
@@ -142,15 +200,7 @@ export const DashboardPage: React.FC = () => {
     .slice(0, 4)}`;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12 relative">
-      {/* Background Watermark */}
-      <div className="absolute top-8 right-8 pointer-events-none opacity-10 select-none hidden lg:block">
-        <img
-          src="/apj-abdul-kalam-transparent.png"
-          alt="Dr. APJ Abdul Kalam"
-          className="w-80 h-auto object-contain"
-        />
-      </div>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12 relative w-full">
 
       {/* Top Banner Alert if Registration Incomplete */}
       {!isRegistered && (
@@ -158,7 +208,7 @@ export const DashboardPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
             <span className="text-xs text-amber-900 font-medium">
-              Registration incomplete. Complete your delegate profile to lock your Innovation Passport.
+              Registration incomplete. Complete your registration to get your official Event Pass.
             </span>
           </div>
           <Link
@@ -173,16 +223,16 @@ export const DashboardPage: React.FC = () => {
 
       {/* Dashboard Top Greeting */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 sm:mb-8">
-        <div>
+        <div className="bg-[#FAF6EE]/90 backdrop-blur-[2px] p-3 sm:p-4 rounded-2xl border border-[#C8B89A]/30 w-fit">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-xs font-bold tracking-widest text-[#0A2A5E] uppercase mb-2">
             <Sparkles className="w-3 h-3 text-[#FF6B00]" />
-            PARTICIPANT COMMAND CENTRE
+            PARTICIPANT DASHBOARD
           </div>
           <h1 className="font-display text-xl sm:text-2xl lg:text-4xl font-extrabold text-[#0A2A5E]">
-            Welcome, {leader.name || 'INSPIRE Innovator'}
+            Welcome, {leader.name || 'INSPIRE Participant'}
           </h1>
-          <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1">
-            {passport.team ? `Delegation: ${passport.team} • ` : ''}
+          <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1 font-medium">
+            {passport.team ? `Team: ${passport.team} • ` : ''}
             {leader.institution || 'IEEE SLRTCE Student Branch'}
           </p>
         </div>
@@ -216,7 +266,7 @@ export const DashboardPage: React.FC = () => {
               className="inline-flex items-center justify-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] text-white text-xs font-bold px-4 py-3 sm:py-2.5 rounded-xl shadow-md transition-all active:scale-95 min-h-[44px]"
             >
               <Upload className="w-3.5 h-3.5" />
-              <span>{hasAbstracts ? 'View / Update PPT' : 'Attach Your PPT'}</span>
+              <span>{hasSubmitted ? 'View Submission' : 'Attach Your Submission'}</span>
             </Link>
             <Link
               to="/profile"
@@ -238,42 +288,51 @@ export const DashboardPage: React.FC = () => {
 
       {/* 4 Status Cards with Image Highlights */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5 mb-8 sm:mb-10">
-        {/* Card 1: Passport Status */}
-        <div className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-xl p-4 sm:p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Innovation Passport</span>
-            {isRegistered ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#138808] bg-[#138808]/10 px-2 py-0.5 rounded-full">
-                <CheckCircle2 className="w-3 h-3" /> Validated
-              </span>
-            ) : (
-              <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                Draft
-              </span>
-            )}
-          </div>
-          <div>
-            <h4 className="font-bold text-sm text-[#0A2A5E] font-mono tracking-wide">
-              {registrationId}
-            </h4>
-            <span className="text-xs text-[#FF6B00] font-semibold mt-1 block">
-              Tier: {passport.category === 'UG' ? 'UG / Diploma' : passport.category || 'Not selected'}
-            </span>
-          </div>
-          <Link
-            to={isRegistered ? '/profile' : '/register'}
-            className="mt-4 pt-3 border-t border-[#C8B89A]/30 text-[11px] font-bold text-[#0A2A5E] hover:underline inline-flex items-center gap-1"
-          >
-            <span>{isRegistered ? 'View Stamped Passport' : 'Complete Registration'}</span>
-            <ChevronRight className="w-3 h-3" />
-          </Link>
-        </div>
+            {/* Card 1: Category */}
+            <div className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-xl p-4 sm:p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Category</span>
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: `${categoryMeta.color}15`, color: categoryMeta.color }}
+                >
+                  {categoryMeta.track}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2.5 my-1">
+                <img
+                  src={categoryMeta.badge}
+                  alt={categoryMeta.title}
+                  className="w-10 h-10 rounded-full object-contain border border-[#C8B89A] shrink-0 shadow-xs bg-white p-0.5"
+                />
+                <div>
+                  <h4 className="font-bold text-sm text-[#0A2A5E] line-clamp-1">
+                    {categoryMeta.title}
+                  </h4>
+                  <span className="text-[11px] text-[#5A5A7A] block line-clamp-1">
+                    {categoryMeta.rule}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-2 pt-2 border-t border-[#C8B89A]/30 text-[10px] text-gray-600 font-mono flex items-center justify-between">
+                <span className="truncate max-w-[125px]">{registrationId}</span>
+                <Link
+                  to="/profile"
+                  className="text-[#FF6B00] font-bold hover:underline inline-flex items-center gap-0.5"
+                >
+                  <span>View Details</span>
+                  <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
+            </div>
 
         {/* Card 2: Research Track with Theme Image (Only when selected) */}
         <div className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-xl p-4 sm:p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Track Domain</span>
-            {passport.track && (
+            {effectiveTrack && (
               <span
                 className="w-3 h-3 rounded-full shadow-sm shrink-0"
                 style={{ backgroundColor: trackInfo?.color || '#0A2A5E' }}
@@ -281,7 +340,7 @@ export const DashboardPage: React.FC = () => {
             )}
           </div>
 
-          {passport.track ? (
+          {effectiveTrack ? (
             <>
               <div className="flex items-center gap-2.5 my-1">
                 <img
@@ -291,7 +350,7 @@ export const DashboardPage: React.FC = () => {
                 />
                 <div>
                   <h4 className="font-bold text-sm text-[#0A2A5E] line-clamp-1">
-                    {passport.track}
+                    {effectiveTrack}
                   </h4>
                   <span className="text-[11px] text-[#5A5A7A] block line-clamp-1">
                     {trackInfo?.short || 'Universal'}
@@ -332,19 +391,19 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div>
             <h4 className="font-bold text-sm text-[#0A2A5E]">
-              {hasAbstracts ? 'Under Peer Review' : 'Pending Submission'}
+              {hasSubmitted ? 'Under Peer Review' : 'Pending Submission'}
             </h4>
             <span className="text-xs text-[#5A5A7A] mt-1 block">
-              {hasAbstracts
-                ? `${passport.abstracts.length} abstract(s) uploaded`
-                : 'Upload PDF format before deadline'}
+              {hasSubmitted
+                ? `1 submission under editorial check`
+                : 'Upload abstract before deadline'}
             </span>
           </div>
           <Link
             to="/submit"
             className="mt-4 pt-3 border-t border-[#C8B89A]/30 text-[11px] font-bold text-[#FF6B00] hover:underline inline-flex items-center gap-1"
           >
-            <span>{hasAbstracts ? 'Upload Revised Draft' : 'Submit Abstract'}</span>
+            <span>{hasSubmitted ? 'View Submission' : 'Submit Abstract'}</span>
             <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
@@ -353,7 +412,7 @@ export const DashboardPage: React.FC = () => {
         <div className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-xl p-4 sm:p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
-              {passport.category === 'UG' ? 'Team Strength' : 'Participation Mode'}
+              {passport.category === 'UG' ? 'Team Participation' : 'Solo Participation'}
             </span>
             {passport.category === 'UG' ? (
               <Users className="w-3.5 h-3.5 text-[#0A2A5E]" />
@@ -366,15 +425,20 @@ export const DashboardPage: React.FC = () => {
               {passport.category === 'UG' ? (
                 <>
                   {passport.people.length} <span className="text-xs font-sans font-normal text-gray-500">Member(s)</span>
+                  {passport.people.length < 2 && (
+                    <span className="block text-[10px] font-sans font-bold text-red-600 mt-0.5">
+                      ⚠️ Incomplete Team (Min 2 required)
+                    </span>
+                  )}
                 </>
               ) : (
                 <>
-                  1 <span className="text-xs font-sans font-normal text-gray-500">Member (Individual Author)</span>
+                  1 <span className="text-xs font-sans font-normal text-gray-500">(Solo Participation)</span>
                 </>
               )}
             </h4>
             <span className="text-xs text-[#5A5A7A] mt-1 block truncate">
-              {passport.category === 'UG' ? `Leader: ${leader.name || 'Not set'}` : `Author: ${leader.name || 'Not set'}`}
+              {passport.category === 'UG' ? `Leader: ${leader.name || 'Not set'}` : `Participant: ${leader.name || 'Not set'}`}
             </span>
           </div>
           {passport.category === 'UG' ? (
@@ -387,7 +451,7 @@ export const DashboardPage: React.FC = () => {
             </Link>
           ) : (
             <div className="mt-4 pt-3 border-t border-[#C8B89A]/30 text-[11px] font-medium text-gray-400">
-              Individual Tier • Solo Entry
+              Individual Tier • Solo Participation
             </div>
           )}
         </div>
@@ -405,59 +469,118 @@ export const DashboardPage: React.FC = () => {
                   Your INSPIRE Colloquium 2026 Journey
                 </h3>
               </div>
-              <span className="text-xs font-bold text-[#138808] bg-[#138808]/10 px-3 py-1 rounded-full flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5" /> Stage 1 In Progress
-              </span>
+              {hasSubmitted ? (
+                <span className="text-xs font-bold text-[#FF6B00] bg-[#FF6B00]/10 border border-[#FF6B00]/30 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                  <Sparkles className="w-3.5 h-3.5 text-[#FF6B00]" /> Stage 2 In Progress: Under Evaluation
+                </span>
+              ) : (
+                <span className="text-xs font-bold text-[#138808] bg-[#138808]/10 px-3 py-1 rounded-full flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5" /> Stage 1 In Progress
+                </span>
+              )}
             </div>
 
             {/* Stages Stack */}
             <div className="space-y-4">
               {/* Stage 1 */}
-              <div className="p-3 sm:p-4 rounded-xl border-2 border-[#0A2A5E] bg-white shadow-sm flex flex-col gap-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#0A2A5E] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                    1
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-sm text-[#0A2A5E]">Abstract Submission & Editorial Check</h4>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-800">
-                        {hasAbstracts ? 'Submitted ✓' : 'Active Now'}
-                      </span>
+              {hasSubmitted ? (
+                <div className="p-3 sm:p-4 rounded-xl border border-emerald-300 bg-emerald-50/50 flex flex-col gap-3 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      ✓
                     </div>
-                    <p className="text-xs text-[#5A5A7A] mt-1">
-                      Upload 2-page extended abstract following IEEE double-column template in your selected track.
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-[#0A2A5E]">Abstract Submission & Editorial Check</h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          Submitted ✓
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#5A5A7A] mt-1">
+                        Abstract received and verified in conference system.
+                      </p>
+                    </div>
                   </div>
+                  <Link
+                    to="/submit"
+                    className="self-start shrink-0 text-xs font-bold px-3 py-2 sm:py-1.5 rounded-lg bg-[#0A2A5E] hover:bg-[#1E3E72] text-white transition-colors min-h-[44px] sm:min-h-0 inline-flex items-center justify-center gap-1.5"
+                  >
+                    <span>View Submission Details</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
-                <Link
-                  to="/submit"
-                  className="self-start shrink-0 text-xs font-bold px-3 py-2 sm:py-1.5 rounded-lg bg-[#FF6B00] hover:bg-[#E65A00] text-white transition-colors min-h-[44px] sm:min-h-0 inline-flex items-center justify-center"
-                >
-                  {hasAbstracts ? 'View / Re-upload' : 'Upload Abstract'}
-                </Link>
-              </div>
+              ) : (
+                <div className="p-3 sm:p-4 rounded-xl border-2 border-[#0A2A5E] bg-white shadow-sm flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#0A2A5E] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      1
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-[#0A2A5E]">Abstract Submission & Editorial Check</h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-800">
+                          Active Now
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#5A5A7A] mt-1">
+                        Submit a concise 150–250 word abstract highlighting your research, idea, or proposed work.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    to="/submit"
+                    className="self-start shrink-0 text-xs font-bold px-3 py-2 sm:py-1.5 rounded-lg bg-[#FF6B00] hover:bg-[#E65A00] text-white transition-colors min-h-[44px] sm:min-h-0 inline-flex items-center justify-center"
+                  >
+                    Upload Submission
+                  </Link>
+                </div>
+              )}
 
               {/* Stage 2 */}
-              <div className="p-3 sm:p-4 rounded-xl border border-[#C8B89A] bg-[#FAF6EE] flex flex-col gap-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                    2
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-sm text-[#0A2A5E]">Double-Blind Peer Review & Scrutiny</h4>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                        Upcoming
-                      </span>
+              {hasSubmitted ? (
+                <div className="p-3 sm:p-4 rounded-xl border-2 border-[#0A2A5E] bg-white shadow-md flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#0A2A5E] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      2
                     </div>
-                    <p className="text-xs text-[#5A5A7A] mt-1">
-                      Domain panel assesses problem statement novelty, methodology depth, and societal relevance (100 pts criteria).
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-[#0A2A5E]">Evaluation</h4>
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-bold animate-pulse">
+                          Active Now · In Review
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#5A5A7A] mt-1">
+                        Review panel is currently evaluating submissions based on problem statement, novelty, and clarity.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-semibold text-amber-900 bg-amber-50/90 px-3 py-2 rounded-lg border border-amber-200">
+                    <Clock className="w-3.5 h-3.5 text-amber-600 animate-spin" />
+                    <span>Evaluation in progress. Shortlist announcements will unlock in Stage 3.</span>
                   </div>
                 </div>
-                <span className="text-xs text-gray-400 italic">Timeline: Stage 2</span>
-              </div>
+              ) : (
+                <div className="p-3 sm:p-4 rounded-xl border border-[#C8B89A] bg-[#FAF6EE] flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      2
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-[#0A2A5E]">Evaluation</h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
+                          Upcoming
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#5A5A7A] mt-1">
+                        Review panel evaluates submissions based on problem statement, novelty, and clarity.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-400 italic">Timeline: Stage 2</span>
+                </div>
+              )}
 
               {/* Stage 3 */}
               <div className="p-3 sm:p-4 rounded-xl border border-[#C8B89A] bg-[#FAF6EE] flex flex-col gap-3">
@@ -467,17 +590,17 @@ export const DashboardPage: React.FC = () => {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-sm text-[#0A2A5E]">Camera-Ready Draft & Presentation Deck</h4>
+                      <h4 className="font-bold text-sm text-[#0A2A5E]">Shortlist Results</h4>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
-                        Locked
+                        Upcoming
                       </span>
                     </div>
                     <p className="text-xs text-[#5A5A7A] mt-1">
-                      Shortlisted teams receive mentor feedback, prepare PPT slides, and confirm physical/virtual attendance.
+                      Announcement of shortlisted teams and participants selected for presentation.
                     </p>
                   </div>
                 </div>
-                <span className="text-xs text-gray-400 italic">Unlocks after Stage 2</span>
+                <span className="text-xs text-gray-400 italic">Unlocks after Evaluation</span>
               </div>
 
               {/* Stage 4 */}
@@ -488,17 +611,59 @@ export const DashboardPage: React.FC = () => {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-sm text-[#0A2A5E]">Conclave Grand Presentation & Awards</h4>
+                      <h4 className="font-bold text-sm text-[#0A2A5E]">Payments (Deadline)</h4>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
+                        Pending Shortlist
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#5A5A7A] mt-1">
+                      Shortlisted participants complete the registration fee payment before the deadline to confirm their slot.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400 italic">Unlocks after Shortlist</span>
+              </div>
+
+              {/* Stage 5 */}
+              <div className="p-3 sm:p-4 rounded-xl border border-[#C8B89A] bg-[#FAF6EE] flex flex-col gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    5
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-sm text-[#0A2A5E]">Main Event</h4>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
+                        Colloquium Day
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#5A5A7A] mt-1">
+                      Live project presentation and defense before jury panels and attendees at SLRTCE Campus.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400 italic">Offline Presentation & Defense</span>
+              </div>
+
+              {/* Stage 6 */}
+              <div className="p-3 sm:p-4 rounded-xl border border-[#C8B89A] bg-[#FAF6EE] flex flex-col gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    6
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-sm text-[#0A2A5E]">Valedictory</h4>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
                         Grand Finale
                       </span>
                     </div>
                     <p className="text-xs text-[#5A5A7A] mt-1">
-                      Live presentation before academic & industry luminaries at SLRTCE Campus with track awards & IEEE citations.
+                      Closing ceremony, winner announcements, awards distribution, and official IEEE citation certificates.
                     </p>
                   </div>
                 </div>
-                <span className="text-xs text-gray-400 italic">Final Conclave</span>
+                <span className="text-xs text-gray-400 italic">Awards & Closing Ceremony</span>
               </div>
             </div>
           </div>
@@ -508,15 +673,15 @@ export const DashboardPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#C8B89A]/50 pb-3 mb-4 gap-2">
               <h3 className="font-display text-lg font-bold text-[#0A2A5E] flex items-center gap-2">
                 <FileText className="w-4 h-4 text-[#FF6B00]" />
-                <span>PPT Presentation Submission</span>
+                <span>Project / Presentation Submission</span>
               </h3>
-              {hasAbstracts ? (
-                <span className="text-[11px] font-bold text-[#138808] bg-[#138808]/10 px-2.5 py-1 rounded-full">
-                  1 of 1 Submitted (Max Reached)
+              {hasSubmitted ? (
+                <span className="text-[11px] font-bold text-[#138808] bg-[#138808]/10 px-2.5 py-1 rounded-full border border-emerald-200">
+                  Submission Recorded (1 of 1)
                 </span>
               ) : (
                 <Link to="/submit" className="text-xs font-bold text-[#FF6B00] hover:underline">
-                  + Submit PPT
+                  + Submit Presentation
                 </Link>
               )}
             </div>
@@ -550,17 +715,14 @@ export const DashboardPage: React.FC = () => {
                                 In Review
                               </span>
                             )}
-                            {paySt === 'PAID' ? (
+                            {paySt === 'PAID' && (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 border border-green-300">
                                 Fee Verified
                               </span>
-                            ) : paySt === 'FAILED' ? (
+                            )}
+                            {paySt === 'FAILED' && (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-800 border border-red-300">
                                 Fee Rejected
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-300">
-                                Fee Pending
                               </span>
                             )}
                           </div>
@@ -586,7 +748,7 @@ export const DashboardPage: React.FC = () => {
                         <span className="text-[11px] text-gray-400 font-mono">
                           Submission ID: {sub.id.slice(0, 8)}…
                         </span>
-                        {sub.pptLink && (
+                        {isValidSubmissionFileUrl(sub.pptLink) && (
                           <a
                             href={sub.pptLink}
                             target="_blank"
@@ -594,7 +756,7 @@ export const DashboardPage: React.FC = () => {
                             className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0A2A5E] bg-[#FAF6EE] hover:bg-[#F3EAD7] px-3 py-1.5 rounded-lg border border-[#C8B89A] transition-colors"
                           >
                             <ExternalLink className="w-3.5 h-3.5 text-[#FF6B00]" />
-                            <span>View Uploaded PPT</span>
+                            <span>View Submitted Presentation</span>
                           </a>
                         )}
                       </div>
@@ -663,20 +825,22 @@ export const DashboardPage: React.FC = () => {
 
             <div className="space-y-2 text-xs">
               <div>
-                <span className="text-[10px] text-gray-400 uppercase font-bold block">Lead Delegate</span>
-                <span className="font-bold text-[#0A2A5E]">{leader.name || 'Delegation Leader'}</span>
+                <span className="text-[10px] text-gray-400 uppercase font-bold block">
+                  {passport.category === 'UG' ? 'Team Leader' : 'Participant'}
+                </span>
+                <span className="font-bold text-[#0A2A5E]">{leader.name || 'Participant'}</span>
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 uppercase font-bold block">Category</span>
                 <span className="font-bold text-[#FF6B00]">{passport.category === 'UG' ? 'UG / Diploma' : passport.category || 'N/A'}</span>
               </div>
               <div>
-                <span className="text-[10px] text-gray-400 uppercase font-bold block">Institution</span>
+                <span className="text-[10px] text-gray-400 uppercase font-bold block">College / Institute</span>
                 <span className="font-bold text-[#0A2A5E]">{leader.institution || 'SLRTCE'}</span>
               </div>
               {passport.category === 'UG' && passport.team && (
                 <div>
-                  <span className="text-[10px] text-gray-400 uppercase font-bold block">Team Delegation</span>
+                  <span className="text-[10px] text-gray-400 uppercase font-bold block">Team Name</span>
                   <span className="font-bold text-[#0A2A5E]">{passport.team}</span>
                 </div>
               )}
@@ -686,16 +850,16 @@ export const DashboardPage: React.FC = () => {
               to="/profile"
               className="mt-4 w-full py-2.5 rounded-lg bg-[#FAF6EE] hover:bg-[#FAF0DB] border border-[#C8B89A] text-[#0A2A5E] text-xs font-bold text-center inline-flex items-center justify-center transition-colors min-h-[44px]"
             >
-              Open Full Passport Editor →
+              Edit Profile Details →
             </Link>
           </div>
 
-          {/* Team / Author Directory Card */}
+          {/* Team / Participant Directory Card */}
           <div className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-2xl p-4 sm:p-5 shadow-sm">
             <h4 className="font-display text-sm font-bold text-[#0A2A5E] uppercase tracking-wider mb-3 flex items-center justify-between">
-              <span>{passport.category === 'UG' ? 'Delegation Directory' : 'Author Profile'}</span>
+              <span>{passport.category === 'UG' ? 'Team Members' : 'Participant Profile'}</span>
               <span className="text-xs font-mono font-normal text-gray-500">
-                {passport.category === 'UG' ? `${passport.people.length} Member(s)` : '1 Member (Individual)'}
+                {passport.category === 'UG' ? `${passport.people.length} Member(s)` : '1 Member (Solo)'}
               </span>
             </h4>
 
@@ -705,7 +869,7 @@ export const DashboardPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-[#0A2A5E]">{p.name || `Member ${idx + 1}`}</span>
                     <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
-                      {passport.category === 'UG' ? (idx === 0 ? 'Lead Author' : 'Co-Author') : 'Primary Author'}
+                      {passport.category === 'UG' ? (idx === 0 ? 'Team Leader' : 'Team Member') : 'Solo Participant'}
                     </span>
                   </div>
                   <span className="text-[11px] text-gray-500 block truncate">{p.email || 'No email provided'}</span>
@@ -718,7 +882,7 @@ export const DashboardPage: React.FC = () => {
                 to="/profile"
                 className="mt-3 text-[11px] font-bold text-[#FF6B00] hover:underline inline-flex items-center justify-center w-full min-h-[44px]"
               >
-                + Add / Edit Co-Authors
+                + Add / Edit Participants
               </Link>
             )}
           </div>

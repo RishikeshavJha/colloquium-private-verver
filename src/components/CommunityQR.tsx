@@ -36,19 +36,19 @@ export const CommunityQR: React.FC<CommunityQRProps> = ({ className = '' }) => {
       {/* Decorative Postal Stamp Corner Notch Styling */}
       <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0A2A5E]/5 border border-[#0A2A5E]/15 text-[10px] font-bold tracking-wider uppercase text-[#0A2A5E]">
         <ShieldCheck className="w-3.5 h-3.5 text-[#25D366]" />
-        <span>Verified Channel</span>
+        <span>Official Group</span>
       </div>
 
       {/* Postmark Header */}
       <div className="text-center mb-4 mt-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#FF9933]/15 text-[#FF6B00] text-[11px] font-bold tracking-widest uppercase mb-1">
-          <Sparkles className="w-3 h-3" /> INSPIRE COLLOQUIUM 2026 COMMUNITY
+          <Sparkles className="w-3 h-3" /> OFFICIAL WHATSAPP GROUP
         </div>
         <h3 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-[#0A2A5E]">
-          Join Official WhatsApp Network
+          Join the WhatsApp Group
         </h3>
         <p className="text-xs sm:text-sm text-[#0A2A5E]/75 max-w-md mx-auto mt-1">
-          Connect directly with mentors, organizers, research peers, and receive instant track & schedule updates.
+          Get quick updates, schedules, problem statements, and connect with other participants.
         </p>
       </div>
 
@@ -84,7 +84,7 @@ export const CommunityQR: React.FC<CommunityQRProps> = ({ className = '' }) => {
             {imgLoaded ? (
               <img
                 src={qrImageUrl}
-                alt="INSPIRE Colloquium 2026 WhatsApp Community QR Code"
+                alt="INSPIRE Colloquium 2026 WhatsApp Group QR Code"
                 className="w-full h-full object-contain p-1 transition-transform duration-300 group-hover:scale-105"
                 onError={() => setImgLoaded(false)}
               />
@@ -105,7 +105,7 @@ export const CommunityQR: React.FC<CommunityQRProps> = ({ className = '' }) => {
         </div>
 
         <span className="text-[10px] text-[#5A5A7A] mt-2 font-medium tracking-wide">
-          ✦ Tap QR stamp to re-align
+          ✦ Scan with your phone or click button below
         </span>
       </div>
 

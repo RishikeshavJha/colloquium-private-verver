@@ -10,9 +10,9 @@ import {
 
 export const CommunityPage: React.FC = () => {
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12 w-full flex flex-col items-center">
       {/* Header */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-8 w-full max-w-2xl mx-auto flex flex-col items-center bg-[#FAF6EE]/90 backdrop-blur-[2px] p-4 sm:p-6 rounded-2xl border border-[#C8B89A]/30 shadow-xs">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-xs font-bold tracking-widest text-[#0A2A5E] uppercase mb-2">
           <Sparkles className="w-3 h-3 text-[#FF6B00]" />
           OFFICIAL PARTICIPANT NETWORK
@@ -85,7 +85,7 @@ export const CommunityPage: React.FC = () => {
               Can multiple team members join the group?
             </h4>
             <p className="leading-relaxed">
-              Yes! All registered delegates, co-authors, and project guides are encouraged to join using the invite link.
+              Yes! All registered participants, team members, and mentors are welcome to join using the invite link.
             </p>
           </div>
 

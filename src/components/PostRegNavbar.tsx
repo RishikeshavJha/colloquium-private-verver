@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Lock } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { getAuthUser, loadPassport, setAuthUser, type AuthUser } from '../utils/storage';
@@ -9,7 +9,7 @@ const allNavLinks = [
   { name: 'Dashboard', path: '/dashboard', authRequired: true },
   { name: 'Submit Idea', path: '/submit', authRequired: true },
   { name: 'Profile', path: '/profile', authRequired: true },
-  { name: 'Guidelines', path: '/guidelines', authRequired: false },
+  { name: 'Guidelines', path: '/guidelines', authRequired: false, locked: true },
   { name: 'Community', path: '/community', authRequired: false },
 ];
 
@@ -17,8 +17,14 @@ const PostRegNavbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(() => !!loadPassport().registered);
   const [user, setUser] = useState<AuthUser | null>(getAuthUser());
+
+  useEffect(() => {
+    // Check registration status on route change or mount
+    const p = loadPassport();
+    setIsRegistered(!!p.registered);
+  }, [location.pathname]);
 
   useEffect(() => {
     // Subscribe to Firebase auth state — updates in real time on login/logout
@@ -37,13 +43,13 @@ const PostRegNavbar = () => {
         setUser(u);
         setAuthUser(u);
         const passport = loadPassport();
-        setIsUnlocked(true || !!passport.registered);
+        setIsRegistered(!!passport.registered);
       } else {
         // Signed out
         const passport = loadPassport();
         setUser(null);
         setAuthUser(null);
-        setIsUnlocked(!!passport.registered);
+        setIsRegistered(!!passport.registered);
       }
     });
     return () => unsubscribe();
@@ -53,7 +59,7 @@ const PostRegNavbar = () => {
 
   return (
     <header className="w-full sticky top-0 z-50 bg-[#0A2A5E] text-white py-2.5 sm:py-2.5 transition-all duration-300">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 md:px-12 flex justify-between items-center">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 md:px-12 flex justify-between items-center relative">
         {/* Left: Branding — SLRTCE links to slrtce.in */}
         <div className="flex items-center space-x-2.5 sm:space-x-3 text-white shrink-0">
           <a
@@ -66,25 +72,45 @@ const PostRegNavbar = () => {
             <img src="/slrtce-logo.png" alt="SLRTCE Logo" className="h-7 sm:h-9 w-auto object-contain drop-shadow-sm" />
           </a>
           <div className="h-6 sm:h-7 w-px bg-white/30" />
-          <Link to="/" title="IEEE SLRTCE Conclave Homepage" className="transition-transform hover:scale-105 active:scale-95">
-            <img src="/ieee-slrtce-logo.png" alt="IEEE SLRTCE Logo" className="h-7 sm:h-9 w-auto object-contain drop-shadow-sm" />
-          </Link>
+          <div title="IEEE SLRTCE Student Branch" className="flex items-center">
+            <img src="/ieee-slrtce-logo-white.png" alt="IEEE SLRTCE Logo" className="h-7 sm:h-9 w-auto object-contain drop-shadow-sm" />
+          </div>
           <div className="h-6 sm:h-7 w-px bg-white/30 hidden sm:block" />
-          <Link to="/" className="hidden sm:flex flex-col">
+          <div className="hidden sm:flex flex-col select-none">
             <span className="text-[11px] font-extrabold tracking-widest text-amber-400 uppercase leading-none">
               INSPIRE 2026
             </span>
             <span className="text-[8.5px] text-white/75 font-sans leading-tight">
-              IEEE SLRTCE Conclave
+              IEEE SLRTCE Student Branch
             </span>
-          </Link>
+          </div>
         </div>
 
-        {/* Center: Nav links (Only shown if unlocked/registered AND not on entrance/login page) */}
-        {!isEntrancePage && isUnlocked ? (
-          <nav className="hidden lg:flex space-x-1 xl:space-x-2 items-center font-sans font-bold text-[0.72rem] xl:text-[0.78rem] tracking-wide">
+        {/* Center: Nav links (Only shown if registration is complete AND not on entrance/registration page) */}
+        {!isEntrancePage && isRegistered ? (
+          <nav className="hidden lg:flex space-x-1 xl:space-x-2 items-center font-sans font-bold text-[0.72rem] xl:text-[0.78rem] tracking-wide lg:absolute lg:left-1/2 lg:-translate-x-1/2">
             {allNavLinks.map((link) => {
               const isActive = location.pathname === link.path;
+
+              if ('locked' in link && link.locked) {
+                return (
+                  <div
+                    key={link.path}
+                    title="Guidelines are currently under review and locked"
+                    className="relative group px-3 py-1 rounded-full inline-flex items-center gap-1.5 text-white/45 cursor-not-allowed select-none transition-all hover:bg-white/5"
+                  >
+                    <span>{link.name}</span>
+                    <Lock className="w-3 h-3 text-amber-300/80 shrink-0" />
+                    {/* Hover block tooltip */}
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center pointer-events-none z-50 whitespace-nowrap">
+                      <div className="bg-[#061838] text-amber-300 text-[10.5px] font-bold py-1 px-2.5 rounded-lg shadow-xl border border-amber-300/35 flex items-center gap-1.5">
+                        <Lock className="w-3 h-3 text-amber-400" />
+                        <span>Section Locked · Under Finalization</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <Link
@@ -102,7 +128,7 @@ const PostRegNavbar = () => {
             })}
           </nav>
         ) : (
-          <div className="hidden md:flex items-center gap-2 text-xs text-amber-200/90 font-medium">
+          <div className="hidden md:flex items-center gap-2 text-xs text-amber-200/90 font-medium md:absolute md:left-1/2 md:-translate-x-1/2">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
             <span className="text-xs font-bold tracking-wider uppercase text-amber-300">
               {isEntrancePage ? 'Registration' : 'SLRTCE Mumbai'}
@@ -112,7 +138,7 @@ const PostRegNavbar = () => {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {!isEntrancePage && isUnlocked && user && (
+          {!isEntrancePage && isRegistered && user && (
             <div className="hidden sm:flex items-center gap-2 bg-white/10 px-2.5 py-1 rounded-full border border-white/20">
               <span className="text-xs font-bold text-amber-300">{user.name.split(' ')[0]}</span>
               <button
@@ -120,7 +146,7 @@ const PostRegNavbar = () => {
                   await signOut(auth);
                   setAuthUser(null);
                   setUser(null);
-                  setIsUnlocked(false);
+                  setIsRegistered(false);
                   navigate('/');
                 }}
                 className="text-[10px] text-white/80 hover:text-white underline cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -130,81 +156,73 @@ const PostRegNavbar = () => {
             </div>
           )}
 
-          {/* Mobile menu trigger */}
-          <button
-            className="lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center text-white focus:outline-none hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-            aria-label="Toggle Navigation Menu"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
+          {/* Mobile menu trigger — STRICTLY hidden until registration is complete */}
+          {!isEntrancePage && isRegistered && (
+            <button
+              className="lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center text-white focus:outline-none hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+              aria-label="Toggle Navigation Menu"
+              onClick={() => setMobileOpen(!mobileOpen)}
+            >
+              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      {mobileOpen && (
+      {/* Mobile Menu — ONLY available for registered participants */}
+      {!isEntrancePage && isRegistered && mobileOpen && (
         <div className="w-full bg-[#0A2A5E] text-white shadow-2xl flex flex-col items-center py-4 space-y-2 lg:hidden border-t border-white/15 animate-in slide-in-from-top-2 duration-200">
-          {isUnlocked ? (
-            <>
-              {allNavLinks.map((link) => (
-                <Link
+          {allNavLinks.map((link) => {
+            if ('locked' in link && link.locked) {
+              return (
+                <div
                   key={link.path}
-                  to={link.path}
-                  className={`text-sm font-semibold transition-colors px-6 py-3 min-h-[44px] rounded-xl w-[90%] text-center inline-flex items-center justify-center gap-2 ${
-                    location.pathname === link.path
-                      ? 'bg-white text-[#0A2A5E] font-bold shadow-sm'
-                      : 'text-white/90 hover:bg-white/10 hover:text-[#FF9933]'
-                  }`}
-                  onClick={() => setMobileOpen(false)}
+                  title="Guidelines are currently locked and being finalized"
+                  className="text-sm font-semibold px-6 py-3 min-h-[44px] rounded-xl w-[90%] text-center inline-flex items-center justify-center gap-2 text-white/45 cursor-not-allowed select-none bg-white/5"
                 >
                   <span>{link.name}</span>
-                </Link>
-              ))}
-
-              {/* Mobile user badge + logout */}
-              {user && (
-                <div className="flex items-center gap-3 mt-2 pt-3 border-t border-white/15 w-[90%] justify-center">
-                  <span className="text-xs font-bold text-amber-300">{user.name.split(' ')[0]}</span>
-                  <button
-                    onClick={async () => {
-                      await signOut(auth);
-                      setAuthUser(null);
-                      setUser(null);
-                      setIsUnlocked(false);
-                      setMobileOpen(false);
-                      navigate('/');
-                    }}
-                    className="text-xs text-white/80 hover:text-white underline min-h-[44px] px-3 flex items-center"
-                  >
-                    Logout
-                  </button>
+                  <Lock className="w-3.5 h-3.5 text-amber-300/80" />
+                  <span className="text-[10px] uppercase font-bold text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-full ml-1">
+                    Locked
+                  </span>
                 </div>
-              )}
-            </>
-          ) : (
-            <>
+              );
+            }
+
+            return (
               <Link
-                to="/guidelines"
-                className="text-sm font-semibold text-white/90 hover:bg-white/10 hover:text-[#FF9933] px-6 py-3 min-h-[44px] rounded-xl w-[90%] text-center inline-flex items-center justify-center gap-2"
+                key={link.path}
+                to={link.path}
+                className={`text-sm font-semibold transition-colors px-6 py-3 min-h-[44px] rounded-xl w-[90%] text-center inline-flex items-center justify-center gap-2 ${
+                  location.pathname === link.path
+                    ? 'bg-white text-[#0A2A5E] font-bold shadow-sm'
+                    : 'text-white/90 hover:bg-white/10 hover:text-[#FF9933]'
+                }`}
                 onClick={() => setMobileOpen(false)}
               >
-                <span>Guidelines</span>
+                <span>{link.name}</span>
               </Link>
-              <Link
-                to="/community"
-                className="text-sm font-semibold text-white/90 hover:bg-white/10 hover:text-[#FF9933] px-6 py-3 min-h-[44px] rounded-xl w-[90%] text-center inline-flex items-center justify-center gap-2"
-                onClick={() => setMobileOpen(false)}
+            );
+          })}
+
+          {/* Mobile user badge + logout */}
+          {user && (
+            <div className="flex items-center gap-3 mt-2 pt-3 border-t border-white/15 w-[90%] justify-center">
+              <span className="text-xs font-bold text-amber-300">{user.name.split(' ')[0]}</span>
+              <button
+                onClick={async () => {
+                  await signOut(auth);
+                  setAuthUser(null);
+                  setUser(null);
+                  setIsRegistered(false);
+                  setMobileOpen(false);
+                  navigate('/');
+                }}
+                className="text-xs text-white/80 hover:text-white underline min-h-[44px] px-3 flex items-center"
               >
-                <span>WhatsApp Community</span>
-              </Link>
-              <Link
-                to="/"
-                className="text-sm font-semibold text-white bg-[#FF6B00] hover:bg-[#E65A00] px-6 py-3 min-h-[44px] rounded-xl w-[90%] text-center inline-flex items-center justify-center gap-2 shadow-sm"
-                onClick={() => setMobileOpen(false)}
-              >
-                <span>Home ↑</span>
-              </Link>
-            </>
+                Logout
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -229,7 +247,7 @@ const PostRegNavbar = () => {
           {/* Layer 1: Parchment core fringe (deckle extends only below y=8 so top is completely clear) */}
           <path
             d="M 1440,8 L 1440,19.5 L 1422,22 L 1410,19.5 L 1395,23.5 L 1386,20 L 1370,22.5 L 1358,27.5 L 1345,25 L 1334,19.5 L 1320,19 L 1308,22.5 L 1295,29 L 1282,33 L 1275,29 L 1264,33.5 L 1252,27.5 L 1240,21 L 1228,19.5 L 1215,22.5 L 1202,18 L 1190,20 L 1178,25.5 L 1165,30 L 1152,26 L 1140,30.5 L 1132,27 L 1120,22 L 1108,19.5 L 1095,18.5 L 1082,21 L 1070,19 L 1058,23.5 L 1045,27 L 1032,21 L 1020,19 L 1008,18 L 995,20.5 L 982,24 L 970,29 L 958,34 L 950,30.5 L 938,36 L 928,31.5 L 916,26 L 904,22 L 892,19 L 880,18 L 868,20.5 L 856,19 L 844,21 L 832,17.5 L 820,16 L 808,18 L 796,21 L 784,19 L 772,23.5 L 760,28.5 L 748,31 L 740,28 L 728,32.5 L 716,26 L 704,22 L 692,19 L 680,18 L 668,20 L 656,17.5 L 644,19 L 632,22.5 L 620,25.5 L 608,23 L 596,27.5 L 584,24 L 572,20 L 560,19 L 548,21.5 L 536,25.5 L 524,30.5 L 512,35 L 504,31 L 492,36 L 480,31 L 468,26 L 456,22 L 444,19 L 432,18.5 L 420,20 L 408,23.5 L 396,28 L 384,25 L 372,21 L 360,19.5 L 348,18 L 336,20 L 324,23 L 312,28 L 300,31 L 292,27.5 L 280,32 L 268,25 L 256,21 L 244,18 L 232,17 L 220,19 L 208,22.5 L 196,26 L 184,30 L 176,26 L 164,31 L 152,26 L 140,21 L 128,19 L 116,20.5 L 104,18 L 92,20 L 80,23 L 68,19 L 56,21 L 44,18.5 L 32,20 L 20,22.5 L 0,19.5 L 0,8 Z"
-            fill="#F8E7BE"
+            fill="#F9F5EB"
             opacity="0.95"
             filter="url(#postreg-torn)"
           />
