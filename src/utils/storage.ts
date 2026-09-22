@@ -122,6 +122,7 @@ export interface AuthUser {
   name: string;
   email: string;
   avatar?: string;
+  degree?: string;
   isNewUser?: boolean;
 }
 
