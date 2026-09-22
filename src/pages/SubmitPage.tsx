@@ -405,36 +405,36 @@ export const SubmitPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-10 md:py-14">
       {/* Header */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-xs font-bold tracking-widest text-[#0A2A5E] uppercase mb-2">
-          <Sparkles className="w-3 h-3 text-[#FF6B00]" />
+      <div className="text-center mb-10">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-xs sm:text-sm font-bold tracking-widest text-[#0A2A5E] uppercase mb-3">
+          <Sparkles className="w-4 h-4 text-[#FF6B00]" />
           RESEARCH PORTAL · STAGE 1
         </div>
-        <h1 className="font-display text-2xl sm:text-3xl sm:text-4xl font-extrabold text-[#0A2A5E]">
+        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#0A2A5E]">
           Submit Extended Abstract
         </h1>
-        <p className="text-xs sm:text-sm text-[#5A5A7A] max-w-xl mx-auto mt-2">
-          Upload your 2-page extended abstract adhering to the IEEE double-column format for domain peer review.
+        <p className="text-sm sm:text-base text-[#5A5A7A] max-w-2xl mx-auto mt-3 leading-relaxed">
+          Upload your extended abstract articulating your research challenge, methodology, and innovation.
         </p>
       </div>
 
       {/* Success Alert */}
       {successMessage && (
-        <div className="mb-6 p-3 sm:p-4 rounded-xl bg-green-50 border-2 border-green-500 text-green-900 flex flex-col sm:flex-row items-start justify-between gap-3 shadow-md">
-          <div className="flex items-start gap-2.5">
-            <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+        <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-green-50 border-2 border-green-500 text-green-900 flex flex-col sm:flex-row items-start justify-between gap-4 shadow-md">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="w-6 h-6 text-green-600 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-bold">{successMessage}</p>
-              <p className="text-xs text-green-700 mt-0.5">
+              <p className="text-base font-bold">{successMessage}</p>
+              <p className="text-sm text-green-700 mt-1">
                 Our editorial review committee has acknowledged receipt. You can track status in your Dashboard.
               </p>
             </div>
           </div>
           <Link
             to="/dashboard"
-            className="text-xs font-bold text-white bg-green-700 hover:bg-green-800 px-3 py-2 sm:py-1.5 rounded-lg shrink-0 min-h-[44px] sm:min-h-0 inline-flex items-center justify-center"
+            className="text-sm font-bold text-white bg-green-700 hover:bg-green-800 px-4 py-2.5 rounded-xl shrink-0 inline-flex items-center justify-center shadow-sm"
           >
             Go to Dashboard →
           </Link>
@@ -443,22 +443,22 @@ export const SubmitPage: React.FC = () => {
 
       {/* Single PPT Limit Notice */}
       {passport.abstracts && passport.abstracts.length >= 1 && (
-        <div className="mb-6 p-3 sm:p-4 rounded-xl bg-amber-50 border-2 border-amber-500 text-amber-950 flex flex-col sm:flex-row items-start justify-between gap-3 shadow-sm">
-          <div className="flex items-start gap-2.5">
-            <CheckCircle2 className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-500 text-amber-950 flex flex-col sm:flex-row items-start justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-bold text-[#0A2A5E]">
-                1 PPT Already Submitted (Only One PPT Submission Permitted)
+              <p className="text-base font-bold text-[#0A2A5E]">
+                1 Submission Already Filed
               </p>
-              <p className="text-xs text-[#5A5A7A] mt-0.5">
+              <p className="text-sm text-[#5A5A7A] mt-1">
                 Current active submission: <strong>{passport.abstracts[0].title}</strong> ({passport.abstracts[0].filename}).
-                Submitting again will replace your current PPT presentation.
+                Submitting again will replace your current submission.
               </p>
             </div>
           </div>
           <Link
             to="/dashboard"
-            className="text-xs font-bold text-white bg-[#0A2A5E] hover:bg-[#082046] px-3.5 py-2 sm:py-1.5 rounded-lg shrink-0 min-h-[44px] sm:min-h-0 inline-flex items-center justify-center"
+            className="text-sm font-bold text-white bg-[#0A2A5E] hover:bg-[#082046] px-4 py-2.5 rounded-xl shrink-0 inline-flex items-center justify-center"
           >
             Dashboard →
           </Link>
@@ -468,17 +468,17 @@ export const SubmitPage: React.FC = () => {
       {/* Main Submission Form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-2xl p-4 sm:p-10 shadow-xl space-y-5 sm:space-y-6"
+        className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-3xl p-6 sm:p-10 md:p-12 shadow-2xl space-y-7 sm:space-y-8"
       >
         {/* Prominent Red Warning Alert */}
         {showWarning && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-red-50/95 border-2 border-red-500 text-red-900 flex items-start gap-3.5 shadow-lg animate-in fade-in duration-200">
-            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-red-900">
-                Action Required: Please complete Title, Track, and Abstract before submitting:
+          <div className="p-5 sm:p-6 rounded-2xl bg-red-50/95 border-2 border-red-500 text-red-900 flex items-start gap-4 shadow-lg animate-in fade-in duration-200">
+            <AlertCircle className="w-6 h-6 text-red-600 shrink-0 mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-base font-bold text-red-900">
+                Action Required: Please complete required fields before submitting:
               </p>
-              <ul className="list-disc list-inside text-xs text-red-700 font-semibold space-y-0.5 mt-1">
+              <ul className="list-disc list-inside text-sm text-red-700 font-semibold space-y-1 mt-1">
                 {validationErrors.title && <li>{validationErrors.title}</li>}
                 {validationErrors.track && <li>{validationErrors.track}</li>}
                 {validationErrors.summary && <li>{validationErrors.summary}</li>}
@@ -490,8 +490,8 @@ export const SubmitPage: React.FC = () => {
 
         {/* Paper Title */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-[#0A2A5E] mb-1.5">
-            Title <span className="text-red-500">*</span>
+          <label className="block text-sm font-extrabold uppercase tracking-wider text-[#0A2A5E] mb-2">
+            Research / Abstract Title <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -506,29 +506,29 @@ export const SubmitPage: React.FC = () => {
                 });
               }
             }}
-            placeholder=""
-            className={`w-full px-4 py-3 rounded-xl border text-base sm:text-sm ${
+            placeholder="Enter full paper or research title"
+            className={`w-full px-4 py-3.5 rounded-xl border-2 text-base font-semibold ${
               validationErrors.title ? 'border-red-500 bg-red-50/30 ring-2 ring-red-400' : 'border-[#C8B89A] bg-white'
-            } text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2A5E]`}
+            } focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] transition-all`}
           />
           {validationErrors.title && (
-            <p className="text-xs text-red-600 mt-1 font-semibold">{validationErrors.title}</p>
+            <p className="text-xs sm:text-sm text-red-600 mt-1.5 font-bold">{validationErrors.title}</p>
           )}
         </div>
 
         {/* Research Track / Theme Selection */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#0A2A5E]">
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-extrabold uppercase tracking-wider text-[#0A2A5E]">
               Research Track / Theme <span className="text-red-500">*</span>
             </label>
-            <span className="text-[11px] text-gray-500 font-medium">9 Sustainable Research Themes</span>
+            <span className="text-xs sm:text-sm text-gray-600 font-bold">9 Sustainable Research Themes</span>
           </div>
 
           <div
-            className={`p-4 rounded-xl bg-white border-2 ${
+            className={`p-5 rounded-2xl bg-white border-2 ${
               validationErrors.track ? 'border-red-500 ring-2 ring-red-400 bg-red-50/20' : 'border-[#C8B89A]'
-            } shadow-sm space-y-3`}
+            } shadow-sm space-y-4`}
           >
             <select
               value={selectedTrack}
@@ -542,7 +542,7 @@ export const SubmitPage: React.FC = () => {
                   });
                 }
               }}
-              className="w-full px-4 py-3 rounded-xl border border-[#C8B89A] bg-white text-base sm:text-sm font-semibold text-[#0A2A5E] focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] min-h-[44px]"
+              className="w-full px-4 py-3.5 rounded-xl border-2 border-[#C8B89A] bg-white text-base font-bold text-[#0A2A5E] focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] min-h-[48px]"
             >
               <option value="">-- Select Your Research Theme / Track --</option>
               {tracks.map((t) => (
@@ -552,26 +552,26 @@ export const SubmitPage: React.FC = () => {
               ))}
             </select>
             {validationErrors.track && (
-              <p className="text-xs text-red-600 mt-1 font-semibold">{validationErrors.track}</p>
+              <p className="text-xs sm:text-sm text-red-600 mt-1 font-bold">{validationErrors.track}</p>
             )}
 
             {selectedTrack && currentTrackTheme && (
-              <div className="flex items-center gap-3.5 pt-3 border-t border-gray-100">
+              <div className="flex items-center gap-4 pt-3 border-t border-gray-100">
                 <img
                   src={currentTrackTheme.image}
                   alt={selectedTrack}
-                  className="w-12 h-12 rounded-xl object-cover border border-[#C8B89A] shadow-xs shrink-0"
+                  className="w-14 h-14 rounded-xl object-cover border border-[#C8B89A] shadow-xs shrink-0"
                 />
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="font-display font-bold text-sm text-[#0A2A5E]">
+                    <h4 className="font-display font-bold text-base text-[#0A2A5E]">
                       {selectedTrack}
                     </h4>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#138808]/15 text-[#138808] border border-[#138808]/30">
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#138808]/15 text-[#138808] border border-[#138808]/30">
                       ✓ Selected Theme
                     </span>
                   </div>
-                  <p className="text-xs text-[#5A5A7A] mt-0.5">
+                  <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1 font-medium">
                     "{trackInfo?.short || 'Universal'}" • UN-SDG: {trackInfo?.sdg || 'Universal'}
                   </p>
                 </div>
@@ -582,42 +582,42 @@ export const SubmitPage: React.FC = () => {
 
         {/* Authors & Teammates (Read-Only) */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#0A2A5E] flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-[#FF6B00]" />
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-extrabold uppercase tracking-wider text-[#0A2A5E] flex items-center gap-2">
+              <Users className="w-4 h-4 text-[#FF6B00]" />
               <span>Authors & Teammates</span>
             </label>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#5A5A7A] bg-[#FAF6EE] px-2.5 py-0.5 rounded-full border border-[#C8B89A]/50">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#5A5A7A] bg-[#FAF6EE] px-3 py-1 rounded-full border border-[#C8B89A]">
               Verified in Passport (Read-Only)
             </span>
           </div>
 
-          <div className="bg-white border-2 border-[#C8B89A] rounded-xl p-4 shadow-xs">
+          <div className="bg-white border-2 border-[#C8B89A] rounded-2xl p-5 shadow-xs">
             {passport.people && passport.people.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {passport.people.map((person, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-xl bg-[#FAF6EE] border border-[#C8B89A]/60 flex items-start gap-2.5"
+                    className="p-3.5 rounded-xl bg-[#FAF6EE] border border-[#C8B89A]/60 flex items-start gap-3"
                   >
-                    <div className="w-8 h-8 rounded-full bg-[#0A2A5E] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-[#0A2A5E] text-white flex items-center justify-center font-bold text-sm shrink-0">
                       {person.name ? person.name.charAt(0).toUpperCase() : idx + 1}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-[#0A2A5E] truncate">
+                        <span className="font-bold text-sm text-[#0A2A5E] truncate">
                           {person.name || (idx === 0 ? 'Lead Author' : `Member ${idx + 1}`)}
                         </span>
                         {idx === 0 && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#FF6B00]/15 text-[#FF6B00]">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#FF6B00]/15 text-[#FF6B00]">
                             Lead
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-[#5A5A7A] truncate">
+                      <p className="text-xs text-[#5A5A7A] truncate mt-0.5">
                         {person.department || 'Department'}{person.institution ? ` • ${person.institution}` : ''}
                       </p>
-                      <p className="text-[10px] text-gray-500 font-mono truncate">
+                      <p className="text-xs text-gray-500 font-mono truncate mt-0.5">
                         {person.email || person.mobile}
                       </p>
                     </div>
@@ -625,19 +625,19 @@ export const SubmitPage: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-[#5A5A7A] italic">No authors registered yet.</p>
+              <p className="text-sm text-[#5A5A7A] italic">No authors registered yet.</p>
             )}
           </div>
         </div>
 
         {/* Abstract */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#0A2A5E]">
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-extrabold uppercase tracking-wider text-[#0A2A5E]">
               Abstract <span className="text-red-500">*</span>
             </label>
             <span
-              className={`text-[11px] font-mono font-bold ${
+              className={`text-xs sm:text-sm font-mono font-bold ${
                 wordCount >= 150 && wordCount <= 250
                   ? 'text-[#138808]'
                   : wordCount > 250
@@ -649,7 +649,7 @@ export const SubmitPage: React.FC = () => {
             </span>
           </div>
           <textarea
-            rows={5}
+            rows={6}
             value={summary}
             onChange={(e) => {
               setSummary(e.target.value);
@@ -662,31 +662,31 @@ export const SubmitPage: React.FC = () => {
               }
             }}
             placeholder="Provide a comprehensive abstract (150–250 words) concisely articulating the research challenge, proposed novelty/methodology, experimental results, and alignment towards the Viksit Bharat 2047 national framework..."
-            className={`w-full px-4 py-3 rounded-xl border text-base sm:text-sm ${
+            className={`w-full px-4 py-3.5 rounded-xl border-2 text-base ${
               validationErrors.summary
                 ? 'border-red-500 bg-red-50/30 ring-2 ring-red-400'
                 : 'border-[#C8B89A] bg-white'
-            } text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] leading-relaxed`}
+            } focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] leading-relaxed font-medium`}
           />
           {validationErrors.summary && (
-            <p className="text-xs text-red-600 mt-1 font-semibold">{validationErrors.summary}</p>
+            <p className="text-xs sm:text-sm text-red-600 mt-1.5 font-bold">{validationErrors.summary}</p>
           )}
-          <p className="text-[11px] text-[#5A5A7A] mt-1 italic">
+          <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1.5 italic">
             Recommended length is between 150 and 250 words for preliminary editorial review.
           </p>
         </div>
 
         {/* PPT File Dropzone */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-[#0A2A5E] mb-1.5">
-            Attach your PPT <span className="text-red-500">*</span>
+          <label className="block text-sm font-extrabold uppercase tracking-wider text-[#0A2A5E] mb-2">
+            Attach Presentation File {isUG && <span className="text-red-500">* (Mandatory for UG)</span>}
           </label>
 
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-2xl p-5 sm:p-8 text-center transition-all cursor-pointer relative bg-white ${
+            className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center transition-all cursor-pointer relative bg-white ${
               validationErrors.file
                 ? 'border-red-500 bg-red-50/20 ring-2 ring-red-400'
                 : isDragging
@@ -718,12 +718,12 @@ export const SubmitPage: React.FC = () => {
 
             {file ? (
               <div className="flex flex-col items-center justify-center">
-                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-700 mb-2">
-                  <CheckCircle2 className="w-6 h-6" />
+                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center text-green-700 mb-3">
+                  <CheckCircle2 className="w-7 h-7" />
                 </div>
-                <h4 className="font-bold text-sm text-[#0A2A5E]">{file.name}</h4>
-                <p className="text-xs text-gray-500 mt-0.5 font-mono">
-                  {(file.size / 1024).toFixed(1)} KB • PPT Presentation Ready
+                <h4 className="font-bold text-base text-[#0A2A5E]">{file.name}</h4>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1 font-mono">
+                  {(file.size / 1024).toFixed(1)} KB • Presentation Attached
                 </p>
                 <button
                   type="button"
@@ -731,40 +731,40 @@ export const SubmitPage: React.FC = () => {
                     e.stopPropagation();
                     setFile(null);
                   }}
-                  className="mt-2 text-xs text-red-600 hover:underline font-semibold"
+                  className="mt-3 text-xs sm:text-sm text-red-600 hover:underline font-bold"
                 >
                   Remove or Choose Another File
                 </button>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center">
-                <div className="w-12 h-12 rounded-full bg-[#FAF6EE] border border-[#C8B89A] flex items-center justify-center text-[#0A2A5E] mb-2">
-                  <Upload className="w-6 h-6" />
+                <div className="w-14 h-14 rounded-full bg-[#FAF6EE] border border-[#C8B89A] flex items-center justify-center text-[#0A2A5E] mb-3">
+                  <Upload className="w-7 h-7" />
                 </div>
-                <p className="text-sm font-bold text-[#0A2A5E]">
-                  Drag & Drop your PPT presentation here, or <span className="text-[#FF6B00] underline">browse</span>
+                <p className="text-base font-bold text-[#0A2A5E]">
+                  Drag & Drop your presentation here, or <span className="text-[#FF6B00] underline">browse</span>
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Attach your PPT (.ppt, .pptx, or .pdf) • Maximum file size 25 MB
+                <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">
+                  Attach your presentation (.ppt, .pptx, or .pdf) • Maximum file size 25 MB
                 </p>
               </div>
             )}
           </div>
 
           {validationErrors.file && (
-            <p className="text-xs text-red-600 mt-2 font-semibold">{validationErrors.file}</p>
+            <p className="text-xs sm:text-sm text-red-600 mt-2 font-bold">{validationErrors.file}</p>
           )}
-          {fileError && <p className="text-xs text-red-600 mt-2 font-semibold">{fileError}</p>}
+          {fileError && <p className="text-xs sm:text-sm text-red-600 mt-2 font-bold">{fileError}</p>}
         </div>
 
         {/* Formatting Guideline Callout */}
-        <div className="p-4 rounded-xl bg-[#FAF6EE] border border-[#C8B89A] flex items-start gap-3 text-xs text-[#5A5A7A]">
-          <Info className="w-4 h-4 text-[#0A2A5E] shrink-0 mt-0.5" />
-          <div>
-            <strong className="text-[#0A2A5E] block font-bold">Submission Requirements:</strong>
-            <ul className="list-disc list-inside mt-1 space-y-0.5 text-[11px]">
-              <li><strong>Strict Limit:</strong> Only one PPT can be submitted per team/delegate.</li>
-              <li>Include Title, Author Names, Theme Track, Problem Statement, Solution & Methodology.</li>
+        <div className="p-5 rounded-2xl bg-[#FAF6EE] border border-[#C8B89A] flex items-start gap-3.5 text-xs sm:text-sm text-[#5A5A7A]">
+          <Info className="w-5 h-5 text-[#0A2A5E] shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <strong className="text-[#0A2A5E] block font-bold text-sm sm:text-base">Submission Requirements:</strong>
+            <ul className="list-disc list-inside mt-1 space-y-1 text-xs sm:text-sm font-medium">
+              <li><strong>Word Count:</strong> Abstract must be between 150 and 250 words.</li>
+              <li><strong>Submission Rule:</strong> PPT presentation is required for UG candidates. PG/PPG candidates submit abstract directly.</li>
               <li>Supported file formats: PPT, PPTX, or PDF presentation (maximum 25 MB).</li>
             </ul>
           </div>
@@ -772,25 +772,25 @@ export const SubmitPage: React.FC = () => {
 
         {/* Submit warning alert callout if missing fields */}
         {showWarning && (
-          <div className="p-3.5 bg-red-50 border-2 border-red-400 rounded-xl flex items-center gap-2.5 text-xs font-bold text-red-800 shadow-sm animate-in fade-in duration-150">
-            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-            <span>Cannot submit: Please provide research paper Title, Abstract, and attach your PPT above.</span>
+          <div className="p-4 bg-red-50 border-2 border-red-400 rounded-xl flex items-center gap-3 text-xs sm:text-sm font-bold text-red-800 shadow-sm animate-in fade-in duration-150">
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+            <span>Cannot submit: Please complete required Title, Track, and Abstract fields above.</span>
           </div>
         )}
 
         {/* Firestore error */}
         {firestoreError && (
-          <div className="p-3.5 bg-red-50 border-2 border-red-400 rounded-xl flex items-center gap-2.5 text-xs font-bold text-red-800 shadow-sm">
+          <div className="p-4 bg-red-50 border-2 border-red-400 rounded-xl flex items-center gap-3 text-xs sm:text-sm font-bold text-red-800 shadow-sm">
             <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
             <span>{firestoreError}</span>
           </div>
         )}
 
         {/* Submit Button */}
-        <div className="pt-4 flex flex-col-reverse sm:flex-row items-center justify-between gap-4 border-t border-[#C8B89A]/50">
+        <div className="pt-6 flex flex-col-reverse sm:flex-row items-center justify-between gap-4 border-t border-[#C8B89A]/50">
           <Link
             to="/dashboard"
-            className="text-xs font-semibold text-[#5A5A7A] hover:text-[#0A2A5E]"
+            className="text-sm font-bold text-[#5A5A7A] hover:text-[#0A2A5E]"
           >
             ← Cancel and Return to Dashboard
           </Link>
@@ -798,21 +798,21 @@ export const SubmitPage: React.FC = () => {
           <button
             type="submit"
             disabled={firestoreLoading}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm px-8 py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 cursor-pointer min-h-[44px]"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] disabled:opacity-60 disabled:cursor-not-allowed text-white font-extrabold text-base px-9 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 cursor-pointer min-h-[48px]"
           >
             {firestoreLoading ? (
               <>
-                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                <span>Uploading…</span>
+                <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                <span>Submitting…</span>
               </>
             ) : (
               <>
                 <span>
                   {passport.abstracts && passport.abstracts.length >= 1
-                    ? 'Update PPT Presentation'
-                    : 'Submit PPT Presentation'}
+                    ? 'Update Submission'
+                    : 'Submit Abstract'}
                 </span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-5 h-5" />
               </>
             )}
           </button>
@@ -821,9 +821,9 @@ export const SubmitPage: React.FC = () => {
 
       {/* Existing Abstract Filings List */}
       {passport.abstracts && passport.abstracts.length > 0 && (
-        <div className="mt-10">
-          <h3 className="font-display text-xl font-bold text-[#0A2A5E] mb-4 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-[#FF6B00]" />
+        <div className="mt-12">
+          <h3 className="font-display text-2xl font-bold text-[#0A2A5E] mb-4 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-[#FF6B00]" />
             <span>Previously Filed Submissions ({passport.abstracts.length})</span>
           </h3>
 
@@ -831,17 +831,17 @@ export const SubmitPage: React.FC = () => {
             {passport.abstracts.map((abs) => (
               <div
                 key={abs.id}
-                className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-xl p-4 sm:p-5 shadow-sm flex flex-col gap-3"
+                className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
               >
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-bold text-gray-500">{abs.id}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                      Under Peer Review
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                      Under Review
                     </span>
                   </div>
-                  <h4 className="font-bold text-base text-[#0A2A5E] mt-1">{abs.title}</h4>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 mt-1">
+                  <h4 className="font-bold text-base sm:text-lg text-[#0A2A5E] mt-1">{abs.title}</h4>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-600 mt-1 font-medium">
                     <span>Track: <strong className="text-[#0A2A5E]">{abs.track}</strong></span>
                     <span>File: <span className="font-mono">{abs.filename}</span></span>
                     <span>Date: {abs.date}</span>
@@ -852,18 +852,18 @@ export const SubmitPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => alert(`Previewing recorded filing: ${abs.filename} (${abs.id})`)}
-                    className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border border-[#C8B89A] bg-white text-[#0A2A5E] hover:bg-gray-50"
+                    className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold px-4 py-2 rounded-xl border border-[#C8B89A] bg-white text-[#0A2A5E] hover:bg-gray-50 shadow-xs"
                   >
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className="w-4 h-4" />
                     <span>Receipt</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDeleteAbstract(abs.id)}
-                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors"
                     title="Withdraw filing"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
               </div>
