@@ -114,8 +114,10 @@ export async function isEmailRegisteredInFirestore(
   }
 }
 
+export const REGISTRATION_WELCOME_WEBHOOK_URL = "https://your-n8n-instance.cloud/webhook/your-registration-webhook-id";
+
 /**
- * Save user registration to Firestore.
+ * Save user registration to Firestore and trigger n8n Welcome Email Webhook.
  * Writes:
  *   - users/{uid}  (leader document)
  *   - users/{uid}/teamMembers/{auto-id}  (one doc per team member, excluding leader)
@@ -167,6 +169,44 @@ export async function saveUserRegistration(
       ...member,
       teamLeaderId: uid,
     });
+  }
+
+  // Trigger n8n Registration Welcome Email Webhook
+  try {
+    const payload = {
+      uid,
+      name: data.name,
+      email: data.email,
+      phoneNumber: data.phoneNumber,
+      college: data.college,
+      branch: data.branch,
+      degree: data.degree,
+      year: data.year,
+      teamName: data.teamName,
+      memberEmails: data.memberEmails,
+      teamMembers: data.teamMembers,
+      registrationDateTime: now,
+    };
+
+    fetch(REGISTRATION_WELCOME_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }).catch((err) => {
+      console.warn("Standard fetch to registration webhook failed, attempting no-cors fallback:", err);
+      fetch(REGISTRATION_WELCOME_WEBHOOK_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }).catch((e) => console.error("Registration webhook error:", e));
+    });
+  } catch (err) {
+    console.error("Failed to trigger registration n8n webhook:", err);
   }
 }
 
