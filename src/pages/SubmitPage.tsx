@@ -48,6 +48,9 @@ export const SubmitPage: React.FC = () => {
   const [firestoreLoading, setFirestoreLoading] = useState(false);
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
 
+  const category = (passport.category || user?.degree || '').toUpperCase();
+  const isUG = category.includes('UG') || category.includes('UNDERGRADUATE') || category === 'DIPLOMA';
+
   useEffect(() => {
     const loaded = loadPassport();
     setPassport(loaded);
