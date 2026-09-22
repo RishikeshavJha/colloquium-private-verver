@@ -133,6 +133,7 @@ export const RegisterPage: React.FC = () => {
     const saved = loadPassport();
 
     if (currentUser?.id) {
+      setHasEntered(true);
       getUserDoc(currentUser.id).then((docData) => {
         if (docData) {
           const restoredPassport: Passport = {
@@ -160,6 +161,7 @@ export const RegisterPage: React.FC = () => {
 
     if (!saved.registered) {
       if (currentUser?.email) {
+        setHasEntered(true);
         const currentLeader = saved.people[0] || emptyPerson();
         saved.people = [{
           ...currentLeader,
