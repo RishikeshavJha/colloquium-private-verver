@@ -66,12 +66,12 @@ const PostRegLayout = () => {
                 </Link>
               </div>
               <p className="text-[9px] font-semibold tracking-wider text-amber-400 uppercase">
-                Vikas Viksit Bharat 2026
+                INSPIRE Colloquium 2026
               </p>
             </div>
 
             <div className="flex flex-col items-center text-center gap-1 text-[9px] sm:text-[10px] text-white/70">
-              <p>&copy; VIKAS 2026 — IEEE SLRTCE STUDENT BRANCH.</p>
+              <p>&copy; INSPIRE Colloquium 2026 — IEEE SLRTCE STUDENT BRANCH.</p>
             </div>
 
             <div className="flex items-center gap-3">

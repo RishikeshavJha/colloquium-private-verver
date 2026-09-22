@@ -42,7 +42,7 @@ export const CommunityQR: React.FC<CommunityQRProps> = ({ className = '' }) => {
       {/* Postmark Header */}
       <div className="text-center mb-4 mt-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#FF9933]/15 text-[#FF6B00] text-[11px] font-bold tracking-widest uppercase mb-1">
-          <Sparkles className="w-3 h-3" /> VIKAS 2026 COMMUNITY
+          <Sparkles className="w-3 h-3" /> INSPIRE COLLOQUIUM 2026 COMMUNITY
         </div>
         <h3 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-[#0A2A5E]">
           Join Official WhatsApp Network
@@ -84,7 +84,7 @@ export const CommunityQR: React.FC<CommunityQRProps> = ({ className = '' }) => {
             {imgLoaded ? (
               <img
                 src={qrImageUrl}
-                alt="VIKAS 2026 WhatsApp Community QR Code"
+                alt="INSPIRE Colloquium 2026 WhatsApp Community QR Code"
                 className="w-full h-full object-contain p-1 transition-transform duration-300 group-hover:scale-105"
                 onError={() => setImgLoaded(false)}
               />

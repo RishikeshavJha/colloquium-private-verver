@@ -1,16 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  loadPassport,
-  savePassport,
-  emptyPerson,
-  validatePerson,
-  yearOptionsFor,
-  getAuthUser,
-  setAuthUser,
-  type Passport,
-  type Person,
-} from '../utils/storage';
+import { loadPassport, savePassport, emptyPerson, validatePerson, yearOptionsFor, getAuthUser, setAuthUser, type Passport, type Person } from '../utils/storage';
+import { updateUserProfile } from '../lib/db';
 import { tracks } from '../data/tracks';
 import {
   Save,
@@ -172,6 +163,18 @@ export const ProfilePage: React.FC = () => {
         name: leaderPerson.name.trim(),
         email: leaderPerson.email.trim().toLowerCase() || currentAuth.email,
       });
+
+      // Also update Firestore doc if signed in
+      updateUserProfile(currentAuth.id, {
+        name: leaderPerson.name.trim(),
+        email: leaderPerson.email.trim().toLowerCase() || currentAuth.email,
+        phoneNumber: leaderPerson.mobile,
+        college: leaderPerson.institution,
+        branch: leaderPerson.department,
+        year: leaderPerson.year,
+        linkedinProfileUrl: leaderPerson.linkedin,
+        teamName: passport.team || '',
+      }).catch(err => console.error('Failed to sync profile to Firestore:', err));
     }
 
     setToast(true);
@@ -713,7 +716,7 @@ export const ProfilePage: React.FC = () => {
                   {/* Circular Official Stamp placed right above Valid Delegate */}
                   <div className="w-16 h-16 rounded-full border-2 border-dashed border-[#FF6B00] flex flex-col items-center justify-center rotate-6 select-none pointer-events-none bg-[#FF6B00]/5 shadow-xs">
                     <span className="text-[6.5px] font-black text-[#FF6B00] uppercase tracking-wider">IEEE SLRTCE</span>
-                    <span className="text-[11px] font-black text-[#0A2A5E] leading-tight">VIKAS</span>
+                    <span className="text-[11px] font-black text-[#0A2A5E] leading-tight">INSPIRE</span>
                     <span className="text-[7.5px] font-bold text-[#138808]">2026</span>
                   </div>
                   <span className="text-[10px] font-bold text-[#138808] flex items-center gap-1">

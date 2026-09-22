@@ -25,7 +25,7 @@ export const GuidelinesPage: React.FC = () => {
           Conference Guidelines & Evaluation Framework
         </h1>
         <p className="text-xs sm:text-sm text-[#5A5A7A] max-w-2xl mx-auto mt-2">
-          Comprehensive eligibility criteria, formatting benchmarks, review parameters, and ethical codes for VIKAS 2026.
+          Comprehensive eligibility criteria, formatting benchmarks, review parameters, and ethical codes for INSPIRE Colloquium 2026.
         </p>
       </div>
 

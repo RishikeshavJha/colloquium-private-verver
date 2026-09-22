@@ -9,11 +9,11 @@ import {
   yearOptionsFor,
   getAuthUser,
   isEmailRegistered,
-  registerEmail,
   type Passport,
   type Person,
   type AuthUser,
 } from '../utils/storage';
+import { saveUserRegistration, getUserDoc, type FirestoreTeamMember } from '../lib/db';
 import CommunityQR from '../components/CommunityQR';
 import { GoogleAuthCard, GoogleSvg } from '../components/GoogleAuthModal';
 import {
@@ -73,25 +73,52 @@ export const RegisterPage: React.FC = () => {
   const [step, setStep] = useState<number>(1);
   const [isAssemblingQR, setIsAssemblingQR] = useState<boolean>(false);
   const [isBuildingProfile, setIsBuildingProfile] = useState<boolean>(false);
+  const [firestoreSaving, setFirestoreSaving] = useState<boolean>(false);
+  const [firestoreError, setFirestoreError] = useState<string>('');
   const [data, setData] = useState<Passport>(() => loadPassport());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [, setAuthUserState] = useState<AuthUser | null>(() => getAuthUser());
   const [authModalMode, setAuthModalMode] = useState<'signup' | 'login' | 'unified' | null>(null);
 
-  const handleAuthSuccess = (user: AuthUser) => {
+  const handleAuthSuccess = async (user: AuthUser) => {
     setAuthUserState(user);
     setAuthModalMode(null);
 
-    // If ID is already registered, redirect directly to dashboard; if new, proceed to registration
-    const isAlreadyRegistered = isEmailRegistered(user.email);
+    // Check Firestore to see if user data already exists in database
+    const existingDoc = await getUserDoc(user.id);
+    const isAlreadyRegistered = !user.isNewUser || !!existingDoc || isEmailRegistered(user.email);
 
     if (isAlreadyRegistered) {
+      if (existingDoc) {
+        const restoredPassport: Passport = {
+          category: existingDoc.degree || 'UG',
+          track: '',
+          team: existingDoc.teamName || '',
+          people: [{
+            name: existingDoc.name || user.name,
+            email: existingDoc.email || user.email,
+            mobile: existingDoc.phoneNumber || '',
+            institution: existingDoc.college || '',
+            department: existingDoc.branch || '',
+            year: existingDoc.year || '',
+            github: existingDoc.githubProfileUrl || '',
+            linkedin: existingDoc.linkedinProfileUrl || '',
+          }],
+          registered: true,
+          abstracts: [],
+        };
+        savePassport(restoredPassport);
+      }
       navigate('/dashboard');
     } else {
-      // New participant registration: ensure all fields for leader start clean & blank
+      // New participant registration: auto-fill name & email from Google Auth
       const freshPassport = {
         ...blankPassport(),
-        people: [emptyPerson()],
+        people: [{
+          ...emptyPerson(),
+          name: user.name || '',
+          email: user.email || '',
+        }],
         registered: false,
       };
       savePassport(freshPassport);
@@ -102,13 +129,48 @@ export const RegisterPage: React.FC = () => {
   };
 
   useEffect(() => {
+    const currentUser = getAuthUser();
     const saved = loadPassport();
-    // If registration was not finalized, ensure leader info is kept blank as requested
+
+    if (currentUser?.id) {
+      setHasEntered(true);
+      getUserDoc(currentUser.id).then((docData) => {
+        if (docData) {
+          const restoredPassport: Passport = {
+            category: docData.degree || 'UG',
+            track: saved.track || '',
+            team: docData.teamName || saved.team || '',
+            people: [{
+              name: docData.name || currentUser.name,
+              email: docData.email || currentUser.email,
+              mobile: docData.phoneNumber || '',
+              institution: docData.college || '',
+              department: docData.branch || '',
+              year: docData.year || '',
+              github: docData.githubProfileUrl || '',
+              linkedin: docData.linkedinProfileUrl || '',
+            }],
+            registered: true,
+            abstracts: saved.abstracts || [],
+          };
+          savePassport(restoredPassport);
+          setData(restoredPassport);
+        }
+      }).catch(err => console.error("Error fetching user doc on mount:", err));
+    }
+
     if (!saved.registered) {
-      saved.people = [emptyPerson()];
-      saved.team = '';
-      savePassport(saved);
-      setData(saved);
+      if (currentUser?.email) {
+        setHasEntered(true);
+        const currentLeader = saved.people[0] || emptyPerson();
+        saved.people = [{
+          ...currentLeader,
+          name: currentLeader.name || currentUser.name || '',
+          email: currentUser.email,
+        }];
+        savePassport(saved);
+        setData(saved);
+      }
       return;
     }
 
@@ -256,7 +318,7 @@ export const RegisterPage: React.FC = () => {
       }
       const cleanEmail = leader.email.trim().toLowerCase();
       if (!data.registered && cleanEmail && isEmailRegistered(cleanEmail)) {
-        errs.email = 'This email is already registered in VIKAS 2026. Please log in to your dashboard or use another email.';
+        errs.email = 'This email is already registered in INSPIRE Colloquium 2026. Please log in to your dashboard or use another email.';
       }
       setErrors(errs);
       return Object.keys(errs).length === 0;
@@ -309,11 +371,8 @@ export const RegisterPage: React.FC = () => {
               seenEmails[mEmail] = memberLabel;
             }
 
-            // Already registered check in conference system / Google Auth
-            if (!data.registered && isEmailRegistered(mEmail)) {
-              newErrors[`member_${i}_email`] = 'This email is already registered in the VIKAS 2026 system under another delegate/team.';
-              hasError = true;
-            }
+            // Already registered check — done server-side via Firestore now
+            // if (!data.registered && isEmailRegistered(mEmail)) { ... }
           }
 
           // Duplicate Mobile Check within team & against Lead Author
@@ -343,7 +402,7 @@ export const RegisterPage: React.FC = () => {
     return true;
   };
 
-  const nextStep = () => {
+  const nextStep = async () => {
     if (canProceed()) {
       if (data.category !== 'UG') {
         handleUpdate((prev) => ({
@@ -362,11 +421,52 @@ export const RegisterPage: React.FC = () => {
           team: finalTeam,
           people: finalPeople,
         }));
-        finalPeople.forEach((p) => {
-          if (p.email) {
-            registerEmail(p.email);
+
+        // ── Save to Firestore ─────────────────────────────────────────────
+        const currentUser = getAuthUser();
+        if (currentUser?.id) {
+          setFirestoreSaving(true);
+          setFirestoreError('');
+          try {
+            const leader = finalPeople[0];
+            const members: FirestoreTeamMember[] = finalPeople.slice(1).map((p) => ({
+              id: '',
+              teamLeaderId: currentUser.id,
+              name: p.name,
+              email: p.email,
+              phoneNumber: p.mobile,
+              college: p.institution,
+              branch: p.department,
+              degree: data.category,
+              year: p.year,
+              gender: '',
+              linkedinProfileUrl: p.linkedin || '',
+            }));
+
+            await saveUserRegistration(currentUser.id, {
+              name: leader.name,
+              email: leader.email,
+              phoneNumber: leader.mobile,
+              college: leader.institution,
+              branch: leader.department,
+              degree: data.category,
+              year: leader.year,
+              gender: '',
+              githubProfileUrl: leader.github || '',
+              linkedinProfileUrl: leader.linkedin || '',
+              teamName: finalTeam,
+              memberEmails: finalPeople.map((p) => p.email).filter(Boolean),
+              teamMembers: members,
+            });
+          } catch (err) {
+            console.error('Firestore save error:', err);
+            setFirestoreError('Registration saved locally. Firestore sync will retry on next login.');
+          } finally {
+            setFirestoreSaving(false);
           }
-        });
+        }
+        // ──────────────────────────────────────────────────────────────────
+
         setIsAssemblingQR(true);
         window.scrollTo({ top: 120, behavior: 'smooth' });
         setTimeout(() => {
@@ -438,7 +538,7 @@ export const RegisterPage: React.FC = () => {
 
             {/* Pill Tag */}
             <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-[10px] sm:text-[11px] font-bold tracking-widest text-[#0A2A5E] uppercase mb-3 sm:mb-4">
-              ✦ VIKAS 2026 REGISTRATION
+              ✦ INSPIRE COLLOQUIUM 2026 REGISTRATION
             </div>
 
             {/* ONE IMAGE ONLY - Sized prominently */}
@@ -526,7 +626,7 @@ export const RegisterPage: React.FC = () => {
         </div>
 
         <h1 className="font-display text-lg sm:text-2xl font-extrabold text-[#0A2A5E] leading-tight">
-          VIKAS 2026 Registration Ledger
+          INSPIRE Colloquium 2026 Registration Ledger
         </h1>
         <p className="text-[11px] sm:text-xs text-[#5A5A7A] max-w-lg mx-auto mt-0.5 hidden sm:block">
           Complete the official delegation profile to generate your Innovation Passport and unlock abstract submissions.
@@ -594,12 +694,12 @@ export const RegisterPage: React.FC = () => {
 
         {/* Subtle Watermark */}
         <div className="absolute top-4 right-6 text-[#C8B89A]/20 font-black text-4xl sm:text-6xl select-none pointer-events-none font-display">
-          VIKAS
+          INSPIRE
         </div>
 
         {/* ================= IN-BETWEEN TRANSITION: QR ASSEMBLY SEQUENCE ================= */}
         {isAssemblingQR && (
-          <div className="qr-build-sequence py-8 px-4" aria-label="Constructing the VIKAS community connection">
+          <div className="qr-build-sequence py-8 px-4" aria-label="Constructing the INSPIRE community connection">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#FF6B00]/10 border border-[#FF6B00]/30 text-[#FF6B00] text-[11px] font-bold tracking-widest uppercase mb-3">
               <span className="w-2 h-2 rounded-full bg-[#FF6B00] animate-ping" />
               CONNECTION / IN PROGRESS
@@ -631,7 +731,7 @@ export const RegisterPage: React.FC = () => {
 
             <h2 className="font-display text-2xl sm:text-4xl font-bold text-[#0A2A5E] tracking-tight mb-2">
               Building the <br className="hidden sm:inline" />
-              <span className="text-[#FF6B00] italic">VIKAS network.</span>
+              <span className="text-[#FF6B00] italic">INSPIRE network.</span>
             </h2>
 
             <p className="text-xs sm:text-sm text-[#0A2A5E]/75 max-w-md mx-auto leading-relaxed">
@@ -663,14 +763,14 @@ export const RegisterPage: React.FC = () => {
 
         {/* ================= IN-BETWEEN TRANSITION: PROFILE BUILDING SEQUENCE ================= */}
         {isBuildingProfile && (
-          <div className="profile-build-sequence py-8 px-4" aria-label="Creating your VIKAS participant identity">
+          <div className="profile-build-sequence py-8 px-4" aria-label="Creating your INSPIRE participant identity">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#138808]/10 border border-[#138808]/30 text-[#138808] text-[11px] font-bold tracking-widest uppercase mb-4">
               <span className="w-2 h-2 rounded-full bg-[#138808] animate-ping" />
               PROFILE / ASSEMBLING
             </div>
 
             <h2 className="font-display text-2xl sm:text-4xl font-bold text-[#0A2A5E] tracking-tight mb-2">
-              Your VIKAS identity <br className="hidden sm:inline" />
+              Your INSPIRE identity <br className="hidden sm:inline" />
               <span className="text-[#138808] italic">is taking shape.</span>
             </h2>
 
@@ -687,7 +787,7 @@ export const RegisterPage: React.FC = () => {
                 {/* Seal stamp drops in */}
                 <div className="absolute top-4 right-4 w-16 h-16 rounded-full border-2 border-dashed border-[#FF6B00] flex flex-col items-center justify-center select-none pointer-events-none animate-seal-drop">
                   <span className="text-[7px] font-black tracking-widest text-[#FF6B00] uppercase">IEEE SLRTCE</span>
-                  <span className="text-[10px] font-black text-[#0A2A5E]">VIKAS</span>
+                  <span className="text-[10px] font-black text-[#0A2A5E]">INSPIRE</span>
                   <span className="text-[8px] font-bold text-[#138808]">2026</span>
                 </div>
 
@@ -739,7 +839,7 @@ export const RegisterPage: React.FC = () => {
                 <div className="mt-3 pt-2 border-t border-dashed border-gray-300 flex items-center justify-between">
                   <div className="animate-barcode-print overflow-hidden">
                     <div className="font-mono text-[7px] text-gray-400 tracking-widest mb-0.5">
-                      VIKAS-2026 // SLRTCE // AUTHORIZED
+                      INSPIRE-2026 // SLRTCE // AUTHORIZED
                     </div>
                     <div className="h-4 w-full bg-[repeating-linear-gradient(90deg,#0A2A5E,#0A2A5E_2px,transparent_2px,transparent_4px,#0A2A5E_4px,#0A2A5E_6px,transparent_6px,transparent_7px)]" />
                   </div>
@@ -957,9 +1057,14 @@ export const RegisterPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
+                  const currentUser = getAuthUser();
                   handleUpdate((prev) => ({
                     ...prev,
-                    people: [emptyPerson(), ...prev.people.slice(1)],
+                    people: [{
+                      ...emptyPerson(),
+                      name: currentUser?.name || prev.people[0]?.name || '',
+                      email: currentUser?.email || prev.people[0]?.email || '',
+                    }, ...prev.people.slice(1)],
                     team: '',
                   }));
                   setErrors({});
@@ -991,14 +1096,17 @@ export const RegisterPage: React.FC = () => {
 
               {/* Full Name */}
               <div>
-                <label className="block text-xs font-semibold text-[#0A2A5E] mb-1.5">
-                  Full Name (as on certificate) <span className="text-red-500">*</span>
+                <label className="block text-xs font-semibold text-[#0A2A5E] mb-1.5 flex items-center justify-between">
+                  <span>Full Name (as on certificate) <span className="text-red-500">*</span></span>
+                  <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    Auto-filled (Editable)
+                  </span>
                 </label>
                 <input
                   type="text"
                   value={leader.name}
                   onChange={(e) => handleLeaderChange('name', e.target.value)}
-                  placeholder=""
+                  placeholder="Enter full legal name"
                   className="w-full px-4 py-3 rounded-xl border border-[#C8B89A] bg-white text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] min-h-[44px]"
                 />
                 {errors.name && <p className="text-xs text-red-600 mt-1 font-medium">{errors.name}</p>}
@@ -1008,19 +1116,21 @@ export const RegisterPage: React.FC = () => {
               <div>
                 <label className="block text-xs font-semibold text-[#0A2A5E] mb-1.5 flex items-center justify-between flex-wrap gap-1">
                   <span>Email Address <span className="text-red-500">*</span></span>
-                  <span className="text-[11px] font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                    Use personal email ID
+                  <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    Google Verified (Locked)
                   </span>
                 </label>
                 <input
                   type="email"
-                  value={leader.email}
-                  onChange={(e) => handleLeaderChange('email', e.target.value)}
-                  placeholder="Enter personal email ID (e.g. name@gmail.com)"
-                  className="w-full px-4 py-3 rounded-xl border border-[#C8B89A] bg-white text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] min-h-[44px]"
+                  value={leader.email || getAuthUser()?.email || ''}
+                  readOnly
+                  disabled
+                  placeholder="Authenticated Google email"
+                  className="w-full px-4 py-3 rounded-xl border border-[#C8B89A] bg-slate-100 text-slate-700 cursor-not-allowed font-medium text-base sm:text-sm focus:outline-none min-h-[44px]"
                 />
                 <p className="text-[11px] text-[#5A5A7A] mt-1">
-                  Please use your personal email ID for communication and certificate delivery.
+                  Your signed-in Google email address is automatically filled and locked for identity verification.
                 </p>
                 {errors.email && <p className="text-xs text-red-600 mt-1 font-medium">{errors.email}</p>}
               </div>
@@ -1330,7 +1440,7 @@ export const RegisterPage: React.FC = () => {
                 Step 4 of 5 • Conclave Communications
               </span>
               <h2 className="font-display text-xl sm:text-3xl font-bold text-[#0A2A5E]">
-                Join the Official VIKAS Community
+                Join the Official INSPIRE Community
               </h2>
               <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1 max-w-xl mx-auto">
                 Stay synchronized with jury announcements, schedule releases, IEEE templates, and peer networking.
@@ -1350,7 +1460,7 @@ export const RegisterPage: React.FC = () => {
                 <CheckCircle2 className="w-4 h-4" /> OFFICIAL DELEGATE REGISTRATION COMPLETED
               </div>
               <h2 className="font-display text-xl sm:text-4xl font-bold text-[#0A2A5E]">
-                VIKAS Digital Innovation Passport
+                INSPIRE Digital Innovation Passport
               </h2>
               <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1">
                 Your official participant credential has been filed in the IEEE SLRTCE conference registry.
@@ -1370,7 +1480,7 @@ export const RegisterPage: React.FC = () => {
               {/* Postmark stamp seal */}
               <div className="absolute top-4 right-4 w-16 h-16 sm:w-24 sm:h-24 rounded-full border-2 border-dashed border-[#FF6B00] flex flex-col items-center justify-center rotate-12 select-none pointer-events-none opacity-85 shadow-xs">
                 <span className="text-[8px] font-black tracking-widest text-[#FF6B00] uppercase">IEEE SLRTCE</span>
-                <span className="text-xs sm:text-sm font-black text-[#0A2A5E]">VIKAS</span>
+                <span className="text-xs sm:text-sm font-black text-[#0A2A5E]">INSPIRE</span>
                 <span className="text-[9px] font-bold text-[#138808]">2026</span>
                 <span className="text-[7px] text-gray-500 uppercase">OFFICIAL</span>
               </div>
@@ -1460,7 +1570,7 @@ export const RegisterPage: React.FC = () => {
               <div className="mt-6 pt-4 border-t-2 border-dashed border-gray-300 flex items-center justify-between relative z-10">
                 <div className="space-y-0.5">
                   <div className="font-mono text-[9px] text-gray-400 tracking-widest">
-                    VIKAS-2026 // SLRTCE // BHARAT-CONCLAVE // AUTHORIZED
+                    INSPIRE-2026 // SLRTCE // BHARAT-CONCLAVE // AUTHORIZED
                   </div>
                   <div className="h-6 w-44 bg-[repeating-linear-gradient(90deg,#0A2A5E,#0A2A5E_2px,transparent_2px,transparent_4px,#0A2A5E_4px,#0A2A5E_7px,transparent_7px,transparent_8px)] opacity-70" />
                 </div>
@@ -1513,12 +1623,19 @@ export const RegisterPage: React.FC = () => {
               </button>
             )}
 
+            {firestoreError && (
+              <div className="w-full mb-2 p-3 bg-red-50 border border-red-300 rounded-xl text-xs text-red-700">
+                {firestoreError}
+              </div>
+            )}
+
             <button
               type="button"
               onClick={nextStep}
-              className="inline-flex items-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] text-white text-xs sm:text-sm font-bold px-5 sm:px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 ml-auto min-h-[44px]"
+              disabled={firestoreSaving}
+              className="inline-flex items-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] disabled:opacity-60 text-white text-xs sm:text-sm font-bold px-5 sm:px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 ml-auto min-h-[44px]"
             >
-              <span>{step === 4 ? 'Issue My Innovation Passport' : 'Continue to Next Step'}</span>
+              <span>{firestoreSaving ? 'Registering...' : (step === 4 ? 'Issue My Innovation Passport' : 'Continue to Next Step')}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

@@ -1,3 +1,6 @@
+import { signOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
+
 export interface Person {
   name: string;
   mobile: string;
@@ -27,21 +30,9 @@ export interface Passport {
   abstracts: Abstract[];
 }
 
-// Immediately clean all legacy test databases
-try {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    localStorage.removeItem('vikas-2026-passport');
-    localStorage.removeItem('vikas-2026-auth');
-    localStorage.removeItem('vikas-2026-registered-emails');
-    localStorage.removeItem('vikas-passport-demo-v1');
-  }
-} catch {
-  // ignore
-}
-
-const STORAGE_KEY = 'vikas-2026-passport-v4';
-const AUTH_KEY = 'vikas-2026-auth-v4';
-const REGISTERED_USERS_KEY = 'vikas-2026-registered-emails-v4';
+// ─── Storage keys (local cache only — Firestore is the source of truth) ───────
+const STORAGE_KEY = 'vikas-2026-passport-v5';
+const AUTH_KEY = 'vikas-2026-auth-v5';
 
 export function emptyPerson(): Person {
   return { name: '', mobile: '', email: '', institution: '', department: '', year: '', github: '', linkedin: '' };
@@ -131,6 +122,7 @@ export interface AuthUser {
   name: string;
   email: string;
   avatar?: string;
+  degree?: string;
   isNewUser?: boolean;
 }
 
@@ -155,54 +147,20 @@ export function setAuthUser(user: AuthUser | null): void {
   }
 }
 
-export function getRegisteredEmails(): string[] {
-  try {
-    const raw = localStorage.getItem(REGISTERED_USERS_KEY);
-    const list: string[] = raw ? JSON.parse(raw) : [];
-    const passport = loadPassport();
-    if (passport.registered && Array.isArray(passport.people)) {
-      passport.people.forEach((p) => {
-        if (p && p.email) {
-          const email = p.email.toLowerCase().trim();
-          if (email && !list.includes(email)) {
-            list.push(email);
-          }
-        }
-      });
-    }
-    return list;
-  } catch {
-    return [];
-  }
-}
-
-export function registerEmail(email: string): void {
-  try {
-    const list = getRegisteredEmails();
-    const clean = email.trim().toLowerCase();
-    if (clean && !list.includes(clean)) {
-      list.push(clean);
-      localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(list));
-    }
-  } catch {
-    // silently fail
-  }
+/** isEmailRegistered is now handled by Firestore (see lib/db.ts).
+ *  This local version is kept as a fast synchronous fallback for the UI only. */
+export function isEmailRegistered(_email: string): boolean {
+  // Always returns false now — real check is done async via Firestore in GoogleAuthModal
+  return false;
 }
 
 export function clearDatabase(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(AUTH_KEY);
-    localStorage.removeItem(REGISTERED_USERS_KEY);
+    // Also sign out from Firebase
+    signOut(auth).catch(() => {});
   } catch {
     // silently fail
   }
 }
-
-export function isEmailRegistered(email: string): boolean {
-  if (!email) return false;
-  const clean = email.trim().toLowerCase();
-  const list = getRegisteredEmails();
-  return list.includes(clean);
-}
-
