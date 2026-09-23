@@ -57,10 +57,10 @@ const PostRegLayout = () => {
           </svg>
         </div>
 
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 md:px-12 py-2.5 sm:py-2">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-2 md:gap-3">
-            <div className="flex flex-col items-center md:items-start gap-0.5">
-              <div className="flex items-center space-x-2">
+        <div className="w-full px-4 sm:px-8 py-3.5 sm:py-3">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-3 md:gap-4">
+            <div className="flex flex-col items-center md:items-start gap-1">
+              <div className="flex items-center space-x-3">
                 <a
                   href="https://slrtce.in/"
                   target="_blank"
@@ -68,39 +68,39 @@ const PostRegLayout = () => {
                   title="Shree L. R. Tiwari College of Engineering (SLRTCE)"
                   className="transition-transform hover:scale-105"
                 >
-                  <img src="/slrtce-logo.png" alt="SLRTCE Logo" className="h-6 sm:h-7 w-auto object-contain" />
+                  <img src="/slrtce-logo.png" alt="SLRTCE Logo" className="h-8 sm:h-9 w-auto object-contain" />
                 </a>
-                <div className="h-4 sm:h-5 w-px bg-white/30" />
+                <div className="h-6 sm:h-7 w-px bg-white/30" />
                 <div title="IEEE SLRTCE Student Branch" className="flex items-center">
-                  <img src="/ieee-slrtce-logo-white.png" alt="IEEE SLRTCE" className="h-6 sm:h-7 w-auto object-contain" />
+                  <img src="/ieee-slrtce-logo-white.png" alt="IEEE SLRTCE" className="h-8 sm:h-9 w-auto object-contain" />
                 </div>
               </div>
-              <p className="text-[9px] font-semibold tracking-wider text-amber-400 uppercase">
+              <p className="text-[11px] sm:text-xs font-bold tracking-wider text-amber-400 uppercase">
                 INSPIRE Colloquium 2026
               </p>
             </div>
 
-            <div className="flex flex-col items-center text-center gap-1 text-[9px] sm:text-[10px] text-white/70">
+            <div className="flex flex-col items-center text-center gap-1 text-xs sm:text-sm text-white/80 font-medium">
               <p>&copy; INSPIRE Colloquium 2026 — IEEE SLRTCE STUDENT BRANCH.</p>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="flex gap-1.5">
+              <div className="flex gap-2">
                 {[
                   {
                     label: 'LinkedIn',
                     icon: 'in',
-                    url: 'https://www.linkedin.com/company/slrtcecollege/',
+                    url: 'https://in.linkedin.com/company/ieee-slrtce-student-branch',
                   },
                   {
                     label: 'SLRTCE Website',
-                    icon: <Globe className="w-3.5 h-3.5 sm:w-3 sm:h-3" />,
+                    icon: <Globe className="w-4 h-4 sm:w-4 sm:h-4" />,
                     url: 'https://slrtce.in/',
                   },
                   {
                     label: 'Instagram',
                     icon: 'ig',
-                    url: 'https://www.instagram.com/slrtce/',
+                    url: 'https://www.instagram.com/ieee.slrtce/',
                   },
                 ].map(social => (
                   <a
@@ -109,7 +109,7 @@ const PostRegLayout = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     title={social.label}
-                    className="w-10 h-10 sm:w-6 sm:h-6 flex items-center justify-center bg-white/10 hover:bg-[#FF6B00] hover:text-white rounded-full cursor-pointer transition-all text-white font-bold text-[10px] sm:text-[9px]"
+                    className="w-8 h-8 sm:w-8 sm:h-8 flex items-center justify-center bg-white/10 hover:bg-[#FF6B00] hover:text-white rounded-full cursor-pointer transition-all text-white font-bold text-xs sm:text-xs shadow-sm"
                   >
                     {social.icon}
                   </a>

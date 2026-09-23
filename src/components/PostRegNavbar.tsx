@@ -73,10 +73,10 @@ const PostRegNavbar = () => {
   const isEntrancePage = location.pathname === '/register' || location.pathname === '/login';
 
   return (
-    <header className="w-full sticky top-0 z-50 bg-[#0A2A5E] text-white py-2 sm:py-2.5 transition-all duration-300 shrink-0">
-      <div className="max-w-[1440px] mx-auto px-3 sm:px-6 md:px-12 flex justify-between items-center relative">
+    <header className="w-full sticky top-0 z-50 bg-[#0A2A5E] text-white py-3 sm:py-4 transition-all duration-300 shrink-0 shadow-md">
+      <div className="w-full px-3 sm:px-6 flex justify-between items-center relative">
         {/* Left: Branding — SLRTCE links to slrtce.in */}
-        <div className="flex items-center space-x-2.5 sm:space-x-3 text-white shrink-0">
+        <div className="flex items-center space-x-3 sm:space-x-4 text-white shrink-0">
           <a
             href="https://slrtce.in/"
             target="_blank"
@@ -84,18 +84,18 @@ const PostRegNavbar = () => {
             title="Shree L. R. Tiwari College of Engineering (SLRTCE)"
             className="transition-transform hover:scale-105 active:scale-95"
           >
-            <img src="/slrtce-logo.png" alt="SLRTCE Logo" className="h-7 sm:h-9 w-auto object-contain drop-shadow-sm" />
+            <img src="/slrtce-logo.png" alt="SLRTCE Logo" className="h-10 sm:h-12 w-auto object-contain drop-shadow-sm" />
           </a>
-          <div className="h-6 sm:h-7 w-px bg-white/30" />
+          <div className="h-8 sm:h-9 w-px bg-white/30" />
           <div title="IEEE SLRTCE Student Branch" className="flex items-center">
-            <img src="/ieee-slrtce-logo-white.png" alt="IEEE SLRTCE Logo" className="h-7 sm:h-9 w-auto object-contain drop-shadow-sm" />
+            <img src="/ieee-slrtce-logo-white.png" alt="IEEE SLRTCE Logo" className="h-10 sm:h-12 w-auto object-contain drop-shadow-sm" />
           </div>
-          <div className="h-6 sm:h-7 w-px bg-white/30 hidden sm:block" />
+          <div className="h-7 sm:h-8 w-px bg-white/30 hidden sm:block" />
           <div className="hidden sm:flex flex-col select-none">
-            <span className="text-[11px] font-extrabold tracking-widest text-amber-400 uppercase leading-none">
+            <span className="text-xs font-extrabold tracking-widest text-amber-400 uppercase leading-none">
               INSPIRE 2026
             </span>
-            <span className="text-[8.5px] text-white/75 font-sans leading-tight">
+            <span className="text-[10px] text-white/80 font-sans leading-tight mt-0.5">
               IEEE SLRTCE Student Branch
             </span>
           </div>
@@ -151,8 +151,8 @@ const PostRegNavbar = () => {
           </nav>
         ) : (
           <div className="hidden md:flex items-center gap-2 text-xs text-amber-200/90 font-medium md:absolute md:left-1/2 md:-translate-x-1/2">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-            <span className="text-xs font-bold tracking-wider uppercase text-amber-300">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="text-sm font-extrabold tracking-widest uppercase text-amber-300">
               {isEntrancePage ? 'Registration' : 'SLRTCE Mumbai'}
             </span>
           </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { loadPassport, savePassport, emptyPerson, validatePerson, yearOptionsFor, getAuthUser, setAuthUser, type Passport, type Person } from '../utils/storage';
-import { updateUserProfile } from '../lib/db';
+import { saveUserRegistration, updateUserProfile } from '../lib/db';
 import { tracks } from '../data/tracks';
 import {
   Save,
@@ -17,9 +17,11 @@ import {
 } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
+  const navigate = useNavigate();
   const [passport, setPassport] = useState<Passport>(() => loadPassport());
   const [_user, setUser] = useState(() => getAuthUser());
   const [toast, setToast] = useState(false);
+  const [isSavingState, setIsSavingState] = useState(false);
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
   const [showErrorBanner, setShowErrorBanner] = useState(false);
 
@@ -144,14 +146,6 @@ export const ProfilePage: React.FC = () => {
     const errs: Record<string, string> = {};
 
     const leaderPerson = passport.people[0] || emptyPerson();
-    const leaderErrs = validatePerson(leaderPerson);
-    Object.entries(leaderErrs).forEach(([field, msg]) => {
-      errs[`leader_${field}`] = msg;
-    });
-
-    if (passport.category === 'UG' && !passport.team?.trim()) {
-      errs['team'] = 'Team Name is required for UG / Diploma entries.';
-    }
 
     if (passport.category === 'UG' && passport.people.length < 2) {
       errs['team_min'] = 'UG / Diploma teams require at least 2 members (1 leader + at least 1 teammate). Please add at least 1 teammate.';
@@ -185,21 +179,44 @@ export const ProfilePage: React.FC = () => {
         email: leaderPerson.email.trim().toLowerCase() || currentAuth.email,
       });
 
-      // Also update Firestore doc if signed in
-      updateUserProfile(currentAuth.id, {
+      // Also update Firestore user doc & sync teamMembers subcollection
+      const members = passport.people.slice(1).map((p) => ({
+        id: '',
+        teamLeaderId: currentAuth.id,
+        name: p.name,
+        email: p.email,
+        phoneNumber: p.mobile,
+        college: p.institution,
+        branch: p.department,
+        degree: passport.category,
+        year: p.year,
+        gender: '',
+        linkedinProfileUrl: p.linkedin || '',
+      }));
+
+      saveUserRegistration(currentAuth.id, {
         name: leaderPerson.name.trim(),
         email: leaderPerson.email.trim().toLowerCase() || currentAuth.email,
         phoneNumber: leaderPerson.mobile,
         college: leaderPerson.institution,
         branch: leaderPerson.department,
+        degree: passport.category,
         year: leaderPerson.year,
-        linkedinProfileUrl: leaderPerson.linkedin,
+        gender: '',
+        githubProfileUrl: leaderPerson.github || '',
+        linkedinProfileUrl: leaderPerson.linkedin || '',
         teamName: passport.team || '',
+        memberEmails: passport.people.map((p) => p.email).filter(Boolean),
+        teamMembers: members,
       }).catch(err => console.error('Failed to sync profile to Firestore:', err));
     }
 
+    setIsSavingState(true);
     setToast(true);
-    setTimeout(() => setToast(false), 3500);
+    setTimeout(() => {
+      setIsSavingState(false);
+      navigate('/dashboard');
+    }, 2200);
   };
 
   const leader = passport.people[0] || emptyPerson();
@@ -328,7 +345,29 @@ export const ProfilePage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12 w-full flex flex-col items-center">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12 w-full flex flex-col items-center relative">
+      {/* Full-screen saving transition overlay */}
+      {isSavingState && (
+        <div className="fixed inset-0 z-[99999] bg-[#0A2A5E]/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
+          <div className="w-20 h-20 rounded-full bg-white/10 border-2 border-amber-400 p-3 flex items-center justify-center mb-6 shadow-2xl relative">
+            <div className="absolute inset-0 rounded-full border-2 border-dashed border-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
+            <Sparkles className="w-10 h-10 text-amber-400 animate-pulse" />
+          </div>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-bold uppercase tracking-widest mb-3">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" /> PROFILE UPDATED SUCCESSFULLY
+          </div>
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
+            Syncing Profile & Event Pass...
+          </h2>
+          <p className="text-xs sm:text-sm text-white/70 max-w-sm mx-auto font-medium">
+            Updating your team records in Firebase database and returning you to your Dashboard.
+          </p>
+          <div className="w-48 h-1.5 bg-white/20 rounded-full mt-6 overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-amber-400 to-[#FF6B00] rounded-full animate-progress-fill" />
+          </div>
+        </div>
+      )}
+
       {/* Header - Centered hero banner */}
       <div className="mb-8 w-full max-w-2xl mx-auto flex flex-col items-center text-center bg-[#FAF6EE]/90 backdrop-blur-[2px] p-4 sm:p-5 rounded-2xl border border-[#C8B89A]/30 shadow-xs">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-xs font-bold tracking-widest text-[#0A2A5E] uppercase mb-2">
@@ -429,279 +468,112 @@ export const ProfilePage: React.FC = () => {
             {/* Academic Division & Track */}
             <div className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
               <h3 className="font-display text-base font-bold text-[#0A2A5E] border-b border-[#C8B89A]/40 pb-2">
-                Academic Tier & Research Track
+                Academic Tier & Team Registration
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
-                    Participation Category
+                    Participation Category (Fixed)
                   </label>
-                  <select
-                    value={passport.category}
-                    onChange={(e) => setPassport({ ...passport, category: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-lg border border-[#C8B89A] bg-white text-sm sm:text-xs font-semibold text-[#0A2A5E] min-h-[44px]"
-                  >
-                    <option value="">Select Category</option>
-                    <option value="UG">UG / Diploma</option>
-                    <option value="PG">Postgraduate (PG)</option>
-                    <option value="PPG">Post-PG / PhD</option>
-                  </select>
+                  <div className="w-full px-3.5 py-2.5 rounded-lg border border-[#C8B89A]/60 bg-gray-100/80 text-sm sm:text-xs font-bold text-[#0A2A5E] min-h-[44px] flex items-center gap-2">
+                    <Lock className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                    <span>
+                      {passport.category === 'UG'
+                        ? 'UG / Diploma (Ideathon)'
+                        : passport.category === 'PG'
+                        ? 'Postgraduate (PG Research)'
+                        : passport.category === 'PPG'
+                        ? 'Post-PG / PhD (Research)'
+                        : passport.category || 'UG / Diploma'}
+                    </span>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
-                    Research Track
-                  </label>
-                  <select
-                    value={passport.track}
-                    onChange={(e) => setPassport({ ...passport, track: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-lg border border-[#C8B89A] bg-white text-sm sm:text-xs font-semibold text-[#0A2A5E] min-h-[44px]"
-                  >
-                    <option value="">Select Track</option>
-                    {tracks.map((t) => (
-                      <option key={t.name} value={t.name}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {passport.category === 'UG' && (
-                  <div className="sm:col-span-2">
+                {passport.category === 'UG' && passport.team && (
+                  <div>
                     <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
-                      Team Name <span className="text-red-500">*</span>
+                      Team Name (Fixed)
                     </label>
-                    <input
-                      type="text"
-                      value={passport.team}
-                      onChange={(e) => {
-                        setPassport({ ...passport, team: e.target.value });
-                        if (profileErrors['team']) {
-                          setProfileErrors((prev) => {
-                            const copy = { ...prev };
-                            delete copy.team;
-                            return copy;
-                          });
-                        }
-                      }}
-                      placeholder=""
-                      className={`w-full px-3 py-2.5 rounded-lg border text-sm sm:text-xs min-h-[44px] ${
-                        profileErrors['team']
-                          ? 'border-red-500 bg-red-50/30 ring-1 ring-red-400'
-                          : 'border-[#C8B89A] bg-white'
-                      }`}
-                    />
-                    {profileErrors['team'] && (
-                      <p className="text-[11px] text-red-600 mt-1 font-semibold">{profileErrors['team']}</p>
-                    )}
+                    <div className="w-full px-3.5 py-2.5 rounded-lg border border-[#C8B89A]/60 bg-gray-100/80 text-sm sm:text-xs font-bold text-[#0A2A5E] min-h-[44px] flex items-center gap-2">
+                      <Lock className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                      <span>{passport.team}</span>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Lead Participant Info */}
+            {/* Lead Participant Info (Fixed) */}
             <div className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
-              <h3 className="font-display text-base font-bold text-[#0A2A5E] border-b border-[#C8B89A]/40 pb-2">
-                Team Leader / Primary Participant
-              </h3>
+              <div className="flex items-center justify-between border-b border-[#C8B89A]/40 pb-2">
+                <h3 className="font-display text-base font-bold text-[#0A2A5E]">
+                  Team Leader / Primary Participant (Fixed)
+                </h3>
+                <span className="text-[10px] uppercase font-bold text-amber-800 bg-amber-100/70 border border-amber-300 px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <Lock className="w-3 h-3" /> Registration Record
+                </span>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
-                    Full Legal Name <span className="text-red-500">*</span>
+                    Full Legal Name
                   </label>
-                  <input
-                    type="text"
-                    value={leader.name}
-                    onChange={(e) => {
-                      handleLeaderChange('name', e.target.value);
-                      if (profileErrors['leader_name']) {
-                        setProfileErrors((prev) => {
-                          const copy = { ...prev };
-                          delete copy.leader_name;
-                          return copy;
-                        });
-                      }
-                    }}
-                    placeholder="Full Name"
-                    className={`w-full px-3 py-2.5 rounded-lg border text-sm sm:text-xs font-semibold min-h-[44px] ${
-                      profileErrors['leader_name']
-                        ? 'border-red-500 bg-red-50/30 ring-2 ring-red-400'
-                        : 'border-[#C8B89A] bg-white'
-                    } `}
-                  />
-                  {profileErrors['leader_name'] && (
-                    <p className="text-[11px] text-red-600 mt-1 font-semibold">
-                      {profileErrors['leader_name']}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-[11px] font-bold uppercase text-[#0A2A5E]">
-                      Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <span className="text-[10px] text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                      Use personal email ID
-                    </span>
+                  <div className="w-full px-3.5 py-2.5 rounded-lg border border-[#C8B89A]/60 bg-gray-100/80 text-sm sm:text-xs font-bold text-[#0A2A5E] min-h-[44px] flex items-center justify-between">
+                    <span>{leader.name || 'Primary Participant'}</span>
+                    <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                   </div>
-                  <input
-                    type="email"
-                    value={leader.email}
-                    onChange={(e) => {
-                      handleLeaderChange('email', e.target.value);
-                      if (profileErrors['leader_email']) {
-                        setProfileErrors((prev) => {
-                          const copy = { ...prev };
-                          delete copy.leader_email;
-                          return copy;
-                        });
-                      }
-                    }}
-                    placeholder="Enter personal email ID (e.g. name@gmail.com)"
-                    className={`w-full px-3 py-2.5 rounded-lg border text-sm sm:text-xs min-h-[44px] ${
-                      profileErrors['leader_email']
-                        ? 'border-red-500 bg-red-50/30 ring-1 ring-red-400'
-                        : 'border-[#C8B89A] bg-white'
-                    } `}
-                  />
-                  {profileErrors['leader_email'] && (
-                    <p className="text-[11px] text-red-600 mt-1 font-semibold">
-                      {profileErrors['leader_email']}
-                    </p>
-                  )}
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
-                    WhatsApp Mobile <span className="text-red-500">*</span>
+                    Email Address
                   </label>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    value={leader.mobile}
-                    onChange={(e) => {
-                      handleLeaderChange('mobile', e.target.value.replace(/\D/g, ''));
-                      if (profileErrors['leader_mobile']) {
-                        setProfileErrors((prev) => {
-                          const copy = { ...prev };
-                          delete copy.leader_mobile;
-                          return copy;
-                        });
-                      }
-                    }}
-                    placeholder="10-digit mobile"
-                    className={`w-full px-3 py-2.5 rounded-lg border text-sm sm:text-xs min-h-[44px] ${
-                      profileErrors['leader_mobile']
-                        ? 'border-red-500 bg-red-50/30 ring-1 ring-red-400'
-                        : 'border-[#C8B89A] bg-white'
-                    } `}
-                  />
-                  {profileErrors['leader_mobile'] && (
-                    <p className="text-[11px] text-red-600 mt-1 font-semibold">
-                      {profileErrors['leader_mobile']}
-                    </p>
-                  )}
+                  <div className="w-full px-3.5 py-2.5 rounded-lg border border-[#C8B89A]/60 bg-gray-100/80 text-sm sm:text-xs font-bold text-[#0A2A5E] min-h-[44px] flex items-center justify-between">
+                    <span className="truncate">{leader.email || '—'}</span>
+                    <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
-                    Year of Study <span className="text-red-500">*</span>
+                    WhatsApp Mobile
                   </label>
-                  <select
-                    value={leader.year}
-                    onChange={(e) => {
-                      handleLeaderChange('year', e.target.value);
-                      if (profileErrors['leader_year']) {
-                        setProfileErrors((prev) => {
-                          const copy = { ...prev };
-                          delete copy.leader_year;
-                          return copy;
-                        });
-                      }
-                    }}
-                    className={`w-full px-3 py-2.5 rounded-lg border text-sm sm:text-xs min-h-[44px] ${
-                      profileErrors['leader_year']
-                        ? 'border-red-500 bg-red-50/30 ring-1 ring-red-400'
-                        : 'border-[#C8B89A] bg-white'
-                    } `}
-                  >
-                    <option value="">Select Year</option>
-                    {yearOptionsFor(passport.category).map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
-                  </select>
-                  {profileErrors['leader_year'] && (
-                    <p className="text-[11px] text-red-600 mt-1 font-semibold">
-                      {profileErrors['leader_year']}
-                    </p>
-                  )}
+                  <div className="w-full px-3.5 py-2.5 rounded-lg border border-[#C8B89A]/60 bg-gray-100/80 text-sm sm:text-xs font-bold text-[#0A2A5E] min-h-[44px] flex items-center justify-between">
+                    <span>{leader.mobile || '—'}</span>
+                    <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
-                    College / Institution <span className="text-red-500">*</span>
+                    Year of Study
                   </label>
-                  <input
-                    type="text"
-                    value={leader.institution}
-                    onChange={(e) => {
-                      handleLeaderChange('institution', e.target.value);
-                      if (profileErrors['leader_institution']) {
-                        setProfileErrors((prev) => {
-                          const copy = { ...prev };
-                          delete copy.leader_institution;
-                          return copy;
-                        });
-                      }
-                    }}
-                    placeholder="Institution"
-                    className={`w-full px-3 py-2.5 rounded-lg border text-sm sm:text-xs min-h-[44px] ${
-                      profileErrors['leader_institution']
-                        ? 'border-red-500 bg-red-50/30 ring-1 ring-red-400'
-                        : 'border-[#C8B89A] bg-white'
-                    } `}
-                  />
-                  {profileErrors['leader_institution'] && (
-                    <p className="text-[11px] text-red-600 mt-1 font-semibold">
-                      {profileErrors['leader_institution']}
-                    </p>
-                  )}
+                  <div className="w-full px-3.5 py-2.5 rounded-lg border border-[#C8B89A]/60 bg-gray-100/80 text-sm sm:text-xs font-bold text-[#0A2A5E] min-h-[44px] flex items-center justify-between">
+                    <span>{leader.year || '—'}</span>
+                    <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
-                    Department <span className="text-red-500">*</span>
+                    College / Institution
                   </label>
-                  <input
-                    type="text"
-                    value={leader.department}
-                    onChange={(e) => {
-                      handleLeaderChange('department', e.target.value);
-                      if (profileErrors['leader_department']) {
-                        setProfileErrors((prev) => {
-                          const copy = { ...prev };
-                          delete copy.leader_department;
-                          return copy;
-                        });
-                      }
-                    }}
-                    placeholder="Department"
-                    className={`w-full px-3 py-2.5 rounded-lg border text-sm sm:text-xs min-h-[44px] ${
-                      profileErrors['leader_department']
-                        ? 'border-red-500 bg-red-50/30 ring-1 ring-red-400'
-                        : 'border-[#C8B89A] bg-white'
-                    } `}
-                  />
-                  {profileErrors['leader_department'] && (
-                    <p className="text-[11px] text-red-600 mt-1 font-semibold">
-                      {profileErrors['leader_department']}
-                    </p>
-                  )}
+                  <div className="w-full px-3.5 py-2.5 rounded-lg border border-[#C8B89A]/60 bg-gray-100/80 text-sm sm:text-xs font-bold text-[#0A2A5E] min-h-[44px] flex items-center justify-between">
+                    <span className="truncate">{leader.institution || '—'}</span>
+                    <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
+                    Department
+                  </label>
+                  <div className="w-full px-3.5 py-2.5 rounded-lg border border-[#C8B89A]/60 bg-gray-100/80 text-sm sm:text-xs font-bold text-[#0A2A5E] min-h-[44px] flex items-center justify-between">
+                    <span className="truncate">{leader.department || '—'}</span>
+                    <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
+                  </div>
                 </div>
               </div>
             </div>

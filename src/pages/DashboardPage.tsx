@@ -93,12 +93,21 @@ export const DashboardPage: React.FC = () => {
       });
     }
 
-    // Conference Date: October 3, 2026 at 9:00 AM IST (from Landing Page)
-    const targetDate = new Date('2026-10-03T09:00:00').getTime();
+    const pptSubmissionDeadline = new Date('2026-09-30T23:59:59').getTime();
+    const evaluationDeadline = new Date('2026-10-01T23:59:59').getTime();
+    const paymentDeadline = new Date('2026-10-02T12:00:00').getTime();
 
     const updateTimer = () => {
       const now = new Date().getTime();
-      const difference = targetDate - now;
+      const currentPassport = loadPassport();
+      const currentHasSubmitted = Boolean(currentPassport.abstracts && currentPassport.abstracts.length > 0);
+
+      let target = pptSubmissionDeadline;
+      if (currentHasSubmitted) {
+        target = evaluationDeadline;
+      }
+
+      const difference = target - now;
 
       if (difference > 0) {
         setTimeLeft({
@@ -106,11 +115,13 @@ export const DashboardPage: React.FC = () => {
           hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
           minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
         });
+      } else {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0 });
       }
     };
 
     updateTimer();
-    const timer = setInterval(updateTimer, 60000);
+    const timer = setInterval(updateTimer, 10000);
     return () => clearInterval(timer);
   }, []);
 
@@ -316,12 +327,20 @@ export const DashboardPage: React.FC = () => {
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#0A2A5E]">
-                    {isSelected ? 'Event Starts In' : isUG ? 'PDF Submission Deadline' : 'Abstract Submission Deadline'}
+                    {isSelected && payStatus === 'NOT_PAID'
+                      ? 'Payment Deadline (Oct 2, 12 PM)'
+                      : hasSubmitted
+                      ? 'Evaluation Window (Ends Oct 1)'
+                      : 'PPT Submission (Deadline Sept 30)'}
                   </span>
-                  <span className={`w-1.5 h-1.5 rounded-full animate-ping ${isSelected ? 'bg-[#FF6B00]' : 'bg-[#FF6B00]'}`} />
+                  <span className="w-1.5 h-1.5 rounded-full animate-ping bg-[#FF6B00]" />
                 </div>
                 <span className="text-[9px] font-semibold text-[#5A5A7A]">
-                  {isSelected ? '🎉 You are Selected!' : 'INSPIRE Colloquium 2026'}
+                  {isSelected && payStatus === 'NOT_PAID'
+                    ? 'Confirm slot before 12:00 PM'
+                    : hasSubmitted
+                    ? 'Evaluation till 1st Oct 11:59 PM'
+                    : 'Submit PPT before 30th Sept 11:59 PM'}
                 </span>
               </div>
             </div>
@@ -606,10 +625,14 @@ export const DashboardPage: React.FC = () => {
                   Verification Issue · Contact Admin
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-100 text-amber-950 border-2 border-amber-400 font-bold text-xs uppercase tracking-wider shadow-sm">
-                  <Clock className="w-4 h-4 text-amber-700" />
-                  Payment Pending
-                </span>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-100 text-amber-950 border-2 border-amber-400 font-bold text-xs uppercase tracking-wider shadow-sm">
+                  <Clock className="w-4 h-4 text-amber-700 animate-spin" style={{ animationDuration: '8s' }} />
+                  <span>Payment Pending</span>
+                  <span className="w-px h-3.5 bg-amber-400/70" />
+                  <span className="font-mono text-xs font-black text-amber-900 tracking-wider">
+                    {String(timeLeft.days).padStart(2, '0')}d {String(timeLeft.hours).padStart(2, '0')}h {String(timeLeft.minutes).padStart(2, '0')}m
+                  </span>
+                </div>
               )}
             </div>
           </div>
@@ -643,11 +666,38 @@ export const DashboardPage: React.FC = () => {
                 </div>
               )}
               {payStatus === 'NOT_PAID' && (
-                <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-300 text-xs text-amber-950 flex items-start gap-3">
-                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="leading-relaxed">
-                    <strong className="font-bold text-amber-900 block mb-0.5">⏰ Action Required: Complete Payment Within 24 Hours</strong>
-                    Pay the registration fee via UPI or bank transfer and submit your transaction ID + screenshot to confirm your presentation slot. <span className="font-bold text-rose-700">Slots not confirmed within 24 hours of selection may be reallocated.</span>
+                <div className="p-3.5 rounded-xl bg-amber-50/90 border-2 border-amber-300 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="leading-relaxed">
+                      <strong className="font-bold text-amber-950 block mb-0.5">⏰ Action Required: Complete Payment Before 2nd Oct, 12:00 PM (Afternoon)</strong>
+                      Pay the registration fee via UPI or bank transfer and submit your transaction ID + screenshot. <span className="font-bold text-rose-700">Slots not confirmed before Oct 2nd 12:00 PM may be reallocated.</span>
+                    </div>
+                  </div>
+
+                  {/* Live Payment Timer Countdown */}
+                  <div className="shrink-0 flex items-center gap-1.5 bg-[#0A2A5E] px-3 py-1.5 rounded-xl border border-amber-400/40 text-white shadow-sm">
+                    <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="font-mono text-sm font-black text-amber-300">
+                        {String(timeLeft.days).padStart(2, '0')}
+                      </span>
+                      <span className="text-[9px] font-bold text-gray-300 uppercase">d</span>
+                    </div>
+                    <span className="text-amber-400/80 font-bold text-xs font-mono">:</span>
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="font-mono text-sm font-black text-amber-300">
+                        {String(timeLeft.hours).padStart(2, '0')}
+                      </span>
+                      <span className="text-[9px] font-bold text-gray-300 uppercase">h</span>
+                    </div>
+                    <span className="text-amber-400/80 font-bold text-xs font-mono">:</span>
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="font-mono text-sm font-black text-amber-300">
+                        {String(timeLeft.minutes).padStart(2, '0')}
+                      </span>
+                      <span className="text-[9px] font-bold text-gray-300 uppercase">m</span>
+                    </div>
                   </div>
                 </div>
               )}

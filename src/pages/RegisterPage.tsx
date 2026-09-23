@@ -81,7 +81,7 @@ const categoryDetails = {
 // ================= MAIN REGISTER PAGE =================
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const [hasEntered, setHasEntered] = useState<boolean>(() => !!getAuthUser());
+  const [hasEntered, setHasEntered] = useState<boolean>(false);
   const [step, setStep] = useState<number>(1);
   const [isAssemblingQR, setIsAssemblingQR] = useState<boolean>(false);
   const [isBuildingProfile, setIsBuildingProfile] = useState<boolean>(false);
@@ -195,53 +195,17 @@ export const RegisterPage: React.FC = () => {
     const currentUser = getAuthUser();
     const saved = loadPassport();
 
-    if (currentUser?.id) {
+    if (currentUser?.id && saved.registered) {
+      navigate('/dashboard');
+      return;
+    }
+
+    if (currentUser?.id && !saved.registered) {
       setHasEntered(true);
-      // Fetch both the leader doc AND the teamMembers subcollection
-      Promise.all([
-        getUserDoc(currentUser.id),
-        getTeamMembers(currentUser.id),
-      ]).then(([docData, teamMemberDocs]) => {
-        if (docData) {
-          const leaderPerson = {
-            name: docData.name || currentUser.name,
-            email: docData.email || currentUser.email,
-            mobile: docData.phoneNumber || '',
-            institution: docData.college || '',
-            department: docData.branch || '',
-            year: docData.year || '',
-            github: docData.githubProfileUrl || '',
-            linkedin: docData.linkedinProfileUrl || '',
-          };
-
-          const memberPeople = teamMemberDocs.map((m) => ({
-            name: m.name || '',
-            email: m.email || '',
-            mobile: m.phoneNumber || '',
-            institution: m.college || '',
-            department: m.branch || '',
-            year: m.year || '',
-            github: '',
-            linkedin: m.linkedinProfileUrl || '',
-          }));
-
-          const restoredPassport: Passport = {
-            category: docData.degree || 'UG',
-            track: saved.track || '',
-            team: docData.teamName || saved.team || '',
-            people: [leaderPerson, ...memberPeople],
-            registered: true,
-            abstracts: saved.abstracts || [],
-          };
-          savePassport(restoredPassport);
-          setData(restoredPassport);
-        }
-      }).catch(err => console.error("Error fetching user doc on mount:", err));
     }
 
     if (!saved.registered) {
       if (currentUser?.email) {
-        setHasEntered(true);
         const currentLeader = saved.people[0] || emptyPerson();
         saved.people = [{
           ...currentLeader,
@@ -654,35 +618,35 @@ export const RegisterPage: React.FC = () => {
           style={{ backgroundImage: "url('/inspire-collage-bg.jpg')" }}
         />
 
-        {/* 2. Solid square card - no glow, no blur */}
+        {/* 2. Solid square card - extra big zoom out fit */}
         <div
           className="absolute z-0 pointer-events-none"
           style={{
-            width: 'min(82vw, 560px)',
-            height: 'min(74vh, 470px)',
+            width: 'min(96vw, 840px)',
+            height: 'min(88vh, 660px)',
             backgroundColor: '#FAF2E5',
-            borderRadius: '8px',
+            borderRadius: '16px',
             border: '1.5px solid rgba(200,184,154,0.5)',
           }}
         />
 
-        {/* 3. LOCKED REGISTRATION CONTENT (Sitting directly inside the open space, ZERO CARD) */}
-        <div className="w-full max-w-xl sm:max-w-2xl relative z-10 mx-auto my-auto text-center px-4 py-2">
+        {/* 3. LOCKED REGISTRATION CONTENT */}
+        <div className="w-full max-w-3xl sm:max-w-4xl relative z-10 mx-auto my-auto text-center px-8 py-6">
           {/* Institutional Logos */}
-          <div className="flex items-center justify-center gap-2.5 mb-1 sm:mb-1.5">
-            <img src="/slrtce-logo.png" alt="SLRTCE" className="h-6 sm:h-7 w-auto object-contain" />
-            <div className="h-5 w-px bg-[#C8B89A]" />
-            <img src="/ieee-slrtce-logo.png" alt="IEEE SLRTCE" className="h-6 sm:h-7 w-auto object-contain" />
+          <div className="flex items-center justify-center gap-4 sm:gap-6 mb-3 sm:mb-4">
+            <img src="/slrtce-logo.png" alt="SLRTCE" className="h-10 sm:h-14 w-auto object-contain" />
+            <div className="h-9 sm:h-12 w-px bg-[#C8B89A]" />
+            <img src="/ieee-slrtce-logo.png" alt="IEEE SLRTCE" className="h-10 sm:h-14 w-auto object-contain" />
           </div>
 
           {/* Pill Tag */}
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-[10px] sm:text-[11px] font-bold tracking-widest text-[#0A2A5E] uppercase mb-3 sm:mb-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-xs sm:text-sm font-bold tracking-widest text-[#0A2A5E] uppercase mb-4 sm:mb-6">
             REGISTRATION · 2026
           </div>
 
           {/* INSPIRE Colloquium Logo */}
-          <div className="flex items-center justify-center mb-3 sm:mb-4">
-            <div className="w-44 sm:w-52 h-20 sm:h-24 rounded-2xl bg-[#000688] border-2 border-dashed border-[#C8B89A] p-2 shadow-md flex items-center justify-center hover:scale-105 transition-transform duration-300 overflow-hidden">
+          <div className="flex items-center justify-center mb-5 sm:mb-6">
+            <div className="w-64 sm:w-80 h-28 sm:h-36 rounded-2xl bg-[#000688] border-2 border-dashed border-[#C8B89A] p-3 shadow-lg flex items-center justify-center hover:scale-105 transition-transform duration-300 overflow-hidden">
               <img
                 src="/inspire-colloquium-logo.png"
                 alt="INSPIRE Colloquium"
@@ -733,7 +697,7 @@ export const RegisterPage: React.FC = () => {
   return (
     <div className="w-full relative select-none flex flex-col items-center">
       {/* Foreground Registration Wizard (Unchanged UI & content) - Harmonious proportioned container */}
-      <div className={`${step === 1 ? 'max-w-[1040px]' : 'max-w-[920px]'} mx-auto px-4 sm:px-6 relative z-10 w-full flex flex-col items-center ${step === 1 ? 'py-1 sm:py-2' : 'py-3 sm:py-5 md:py-6'}`}>
+      <div className={`${step === 1 ? 'max-w-[1240px]' : 'max-w-[1100px]'} mx-auto px-4 sm:px-6 relative z-10 w-full flex flex-col items-center ${step === 1 ? 'py-1 sm:py-2' : 'py-3 sm:py-5 md:py-6'}`}>
         {/* Top Header Bar */}
         <div className="w-full flex flex-wrap items-center justify-between gap-3 border-b border-[#C8B89A]/40 mb-2 pb-1.5 sm:mb-4 sm:pb-2.5">
           <button
@@ -897,8 +861,6 @@ export const RegisterPage: React.FC = () => {
             {/* Animated Passport Card Preview */}
             <div className="max-w-md mx-auto animate-passport-assemble animate-card-glow relative">
               <div className="bg-white border-4 border-[#0A2A5E] rounded-2xl p-5 sm:p-6 relative overflow-hidden">
-                {/* Gold Foil Bar */}
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#FF6B00] via-[#D4AF37] to-[#138808] animate-foil-shimmer" />
 
                 {/* Seal stamp drops in */}
                 <div className="absolute top-4 right-4 w-16 h-16 rounded-full border-2 border-dashed border-[#FF6B00] flex flex-col items-center justify-center select-none pointer-events-none animate-seal-drop">
@@ -1734,8 +1696,6 @@ export const RegisterPage: React.FC = () => {
 
             {/* Digital Passport Card with Stamp and Authentic Logos */}
             <div className="max-w-2xl mx-auto bg-[#FFFDF9] border-2 border-[#0A2A5E] rounded-2xl p-4 sm:p-8 shadow-xl relative overflow-hidden">
-              {/* Gold Foil Bar at top */}
-              <div className="absolute top-0 left-0 w-full h-2.5 bg-gradient-to-r from-[#FF6B00] via-[#D4AF37] to-[#138808]" />
 
               {/* Postmark stamp seal */}
               <div className="absolute top-4 right-4 w-16 h-16 sm:w-24 sm:h-24 rounded-full border-2 border-dashed border-[#FF6B00] flex flex-col items-center justify-center rotate-12 select-none pointer-events-none opacity-85 shadow-xs">
