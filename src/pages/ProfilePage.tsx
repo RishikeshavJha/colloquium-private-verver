@@ -299,16 +299,14 @@ export const ProfilePage: React.FC = () => {
             <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Department</div>
             <div className="font-bold text-[12px] text-white mt-0.5 leading-snug">{person.department || leader.department || '—'}</div>
           </div>
-          <div className="col-span-2">
+          <div>
             <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">College / Institute</div>
             <div className="font-semibold text-[12px] text-white/85 mt-0.5 leading-snug">{person.institution || leader.institution || 'Affiliated Institution'}</div>
           </div>
-          {passport.team && (
-            <div className="col-span-2">
-              <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Team Name</div>
-              <div className="font-black text-sm text-amber-300 mt-0.5">{passport.team}</div>
-            </div>
-          )}
+          <div>
+            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Team Name</div>
+            <div className="font-black text-sm text-amber-300 mt-0.5">{passport.team || '—'}</div>
+          </div>
         </div>
 
         {/* Footer: Barcode + Stamp */}
@@ -481,17 +479,18 @@ export const ProfilePage: React.FC = () => {
                   </div>
                 </div>
 
-                {passport.team && (
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
-                      Team Name (Fixed)
-                    </label>
-                    <div className="w-full px-3.5 py-2.5 rounded-lg border border-[#C8B89A]/60 bg-gray-100/80 text-sm sm:text-xs font-bold text-[#0A2A5E] min-h-[44px] flex items-center gap-2">
-                      <Lock className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                      <span>{passport.team}</span>
-                    </div>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
+                    Team Name
+                  </label>
+                  <input
+                    type="text"
+                    value={passport.team || ''}
+                    onChange={(e) => setPassport((prev) => ({ ...prev, team: e.target.value }))}
+                    placeholder="Enter team name"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-[#C8B89A]/60 bg-white text-sm sm:text-xs font-bold text-[#0A2A5E] focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] min-h-[44px]"
+                  />
+                </div>
               </div>
             </div>
 
@@ -886,12 +885,10 @@ export const ProfilePage: React.FC = () => {
                   <span className="text-[10px] text-gray-500 block">{leader.department}</span>
                 </div>
 
-                {passport.team && (
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-gray-400 block">Team Name</span>
-                    <span className="font-bold text-xs text-[#0A2A5E]">{passport.team}</span>
-                  </div>
-                )}
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-gray-400 block">Team Name</span>
+                  <span className="font-bold text-xs text-[#0A2A5E]">{passport.team || '—'}</span>
+                </div>
 
                 <div>
                   <span className="text-[9px] uppercase font-bold text-gray-400 block">
