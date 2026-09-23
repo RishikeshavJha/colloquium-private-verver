@@ -168,7 +168,7 @@ export function clearDatabase(): void {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(AUTH_KEY);
     // Also sign out from Firebase
-    signOut(auth).catch(() => {});
+    signOut(auth).catch(() => { });
   } catch {
     // silently fail
   }
