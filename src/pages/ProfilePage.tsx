@@ -213,6 +213,8 @@ export const ProfilePage: React.FC = () => {
     .slice(0, 4)}`;
 
   const trackInfo = tracks.find((t) => t.name === passport.track);
+  const hasSubmitted = Boolean(passport.abstracts && passport.abstracts.length > 0);
+
   const renderMemberIDCard = (person: Person, idx: number) => {
     const isLeader = idx === 0;
     const cardPassId = isLeader ? registrationId : `${registrationId}-M${idx + 1}`;
