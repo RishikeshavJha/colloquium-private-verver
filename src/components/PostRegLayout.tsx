@@ -1,10 +1,13 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import PostRegNavbar from './PostRegNavbar';
 import InspireParchmentBackground from './InspireParchmentBackground';
 import { InspireBackgroundProvider } from '../context/InspireBackgroundContext';
 import { Globe } from 'lucide-react';
 
 const PostRegLayout = () => {
+  const location = useLocation();
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+
   return (
     <InspireBackgroundProvider>
       <div className="min-h-screen flex flex-col bg-[#FAF6EE] font-sans selection:bg-[#FF9933]/30">
@@ -16,10 +19,10 @@ const PostRegLayout = () => {
 
         <PostRegNavbar />
 
-        <main className="registration-workspace flex-grow relative z-10 flex flex-col items-center justify-start pb-4 sm:pb-6 w-full overflow-x-hidden">
-          <InspireParchmentBackground />
+        <main className={`registration-workspace flex-grow relative z-10 flex flex-col items-center justify-start w-full overflow-x-hidden ${isAuthPage ? 'p-0 pb-0' : 'pb-4 sm:pb-6'}`}>
+          {!isAuthPage && <InspireParchmentBackground />}
 
-          <div className="relative z-10 w-full flex-grow flex flex-col items-center justify-start">
+          <div className={`relative z-10 w-full flex-grow flex flex-col items-center justify-start ${isAuthPage ? 'h-full' : ''}`}>
             <Outlet />
           </div>
         </main>
