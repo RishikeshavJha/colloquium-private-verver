@@ -317,9 +317,20 @@ export const RegisterPage: React.FC = () => {
   const handleLeaderChange = (field: keyof Person, value: string) => {
     const formattedValue = field === 'name' ? toTitleCase(value) : value;
     handleUpdate((prev) => {
-      const leader = { ...prev.people[0], [field]: formattedValue };
-      const people = [leader, ...prev.people.slice(1)];
-      return { ...prev, people };
+      const oldLeader = prev.people[0] || emptyPerson();
+      const leader = { ...oldLeader, [field]: formattedValue };
+      
+      const updatedMembers = prev.people.slice(1).map((m) => {
+        if (field === 'institution' || field === 'department' || field === 'year' || field === 'courseType') {
+          const oldVal = oldLeader[field];
+          if (!m[field] || m[field] === oldVal) {
+            return { ...m, [field]: formattedValue };
+          }
+        }
+        return m;
+      });
+
+      return { ...prev, people: [leader, ...updatedMembers] };
     });
     if (errors[field]) {
       setErrors((prev) => {
@@ -1462,14 +1473,11 @@ export const RegisterPage: React.FC = () => {
                 </p>
               </div>
 
-              {data.category === 'UG' && data.people.length < 4 && (
-                <button
-                  type="button"
-                  onClick={addMember}
-                  className="inline-flex items-center gap-1.5 bg-[#0A2A5E] hover:bg-[#082046] text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl transition-all shadow active:scale-95 self-start cursor-pointer min-h-[44px]"
-                >
-                  <Plus className="w-4 h-4" /> Add Team Member ({data.people.length}/4)
-                </button>
+              {data.category === 'UG' && (
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#0A2A5E]/10 border border-[#0A2A5E]/20 text-[#0A2A5E] text-xs font-bold self-start sm:self-auto">
+                  <Users className="w-4 h-4 text-[#FF6B00]" />
+                  <span>Team Size: <strong className="text-[#FF6B00]">{data.people.length}/4</strong> Members</span>
+                </div>
               )}
             </div>
 
@@ -1597,8 +1605,11 @@ export const RegisterPage: React.FC = () => {
 
                         {/* Academic Year */}
                         <div>
-                          <label className="block text-xs font-bold text-[#061838] mb-1.5">
-                            Current Year of Study <span className="text-red-500">*</span>
+                          <label className="block text-xs font-bold text-[#061838] mb-1.5 flex items-center justify-between flex-wrap gap-1">
+                            <span>Current Year of Study <span className="text-red-500">*</span></span>
+                            <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                              Auto-filled from Leader (Editable)
+                            </span>
                           </label>
                           <select
                             name={`member_year_${actualIndex}`}
@@ -1618,8 +1629,11 @@ export const RegisterPage: React.FC = () => {
 
                         {/* College / Institution */}
                         <div>
-                          <label className="block text-xs font-bold text-[#061838] mb-1.5">
-                            College / Institute Name <span className="text-red-500">*</span>
+                          <label className="block text-xs font-bold text-[#061838] mb-1.5 flex items-center justify-between flex-wrap gap-1">
+                            <span>College / Institute Name <span className="text-red-500">*</span></span>
+                            <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                              Auto-filled from Leader (Editable)
+                            </span>
                           </label>
                           <input
                             type="text"
@@ -1627,7 +1641,7 @@ export const RegisterPage: React.FC = () => {
                             autoComplete="off"
                             value={member.institution}
                             onChange={(e) => handleMemberChange(actualIndex, 'institution', e.target.value)}
-                            placeholder=""
+                            placeholder="College / Institute Name"
                             className={`w-full px-4 py-3 rounded-xl border ${instErr ? 'border-red-500 bg-red-50/30 ring-1 ring-red-400' : 'border-[#C8B89A]/80 bg-white'} text-base sm:text-sm text-[#061838] font-medium focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] min-h-[46px] shadow-2xs`}
                           />
                           {instErr && <p className="text-xs text-red-600 mt-1 font-medium">{instErr}</p>}
@@ -1635,8 +1649,11 @@ export const RegisterPage: React.FC = () => {
 
                         {/* Department */}
                         <div>
-                          <label className="block text-xs font-bold text-[#061838] mb-1.5">
-                            Department / Branch <span className="text-red-500">*</span>
+                          <label className="block text-xs font-bold text-[#061838] mb-1.5 flex items-center justify-between flex-wrap gap-1">
+                            <span>Department / Branch <span className="text-red-500">*</span></span>
+                            <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                              Auto-filled from Leader (Editable)
+                            </span>
                           </label>
                           <input
                             type="text"
@@ -1644,7 +1661,7 @@ export const RegisterPage: React.FC = () => {
                             autoComplete="off"
                             value={member.department}
                             onChange={(e) => handleMemberChange(actualIndex, 'department', e.target.value)}
-                            placeholder=""
+                            placeholder="Department / Branch"
                             className={`w-full px-4 py-3 rounded-xl border ${deptErr ? 'border-red-500 bg-red-50/30 ring-1 ring-red-400' : 'border-[#C8B89A]/80 bg-white'} text-base sm:text-sm text-[#061838] font-medium focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] min-h-[46px] shadow-2xs`}
                           />
                           {deptErr && <p className="text-xs text-red-600 mt-1 font-medium">{deptErr}</p>}
@@ -1653,6 +1670,19 @@ export const RegisterPage: React.FC = () => {
                     </div>
                   );
                 })}
+
+                {/* Add Team Member Button below member cards */}
+                {data.category === 'UG' && data.people.length < 4 && (
+                  <div className="pt-2 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={addMember}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#0A2A5E] hover:bg-[#082046] text-white text-xs sm:text-sm font-bold px-6 py-3 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer min-h-[46px]"
+                    >
+                      <Plus className="w-4.5 h-4.5" /> Add Team Member ({data.people.length}/4)
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
