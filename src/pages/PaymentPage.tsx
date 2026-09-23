@@ -154,8 +154,13 @@ export const PaymentPage: React.FC = () => {
       // 1. Save to Firestore + upload screenshot to Storage
       const screenshotUrl = await submitPaymentProof(user.id, selectedSubmission.id, txnId, screenshot);
 
-      // 2. Fire-and-forget webhook — FormData + no-cors bypasses CORS preflight so n8n actually receives it
+      // 2. Fire-and-forget webhook — send image file and Authorization Bearer token
       const wh = new FormData();
+      wh.append('file', screenshot);
+      wh.append('image', screenshot);
+      wh.append('screenshot', screenshot);
+      wh.append('secret', 'your_n8n_bearer_secret_here');
+      wh.append('userId', user.id);
       wh.append('uid', user.id);
       wh.append('email', user.email || passport.people?.[0]?.email || '');
       wh.append('teamName', passport.team || '');
@@ -166,8 +171,21 @@ export const PaymentPage: React.FC = () => {
       wh.append('screenshotUrl', screenshotUrl);
       wh.append('track', selectedSubmission.track || '');
       wh.append('submittedAt', new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
-      fetch(N8N_WEBHOOK, { method: 'POST', mode: 'no-cors', body: wh })
-        .catch((e) => console.warn('n8n webhook (non-fatal):', e));
+
+      fetch(N8N_WEBHOOK, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer your_n8n_bearer_secret_here',
+        },
+        body: wh,
+      }).catch((err) => {
+        console.warn('Standard webhook fetch failed, attempting fallback:', err);
+        fetch(N8N_WEBHOOK, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: wh,
+        }).catch((e) => console.warn('n8n webhook fallback (non-fatal):', e));
+      });
 
       setSubmitted(true);
     } catch (err) {
