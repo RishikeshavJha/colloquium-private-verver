@@ -142,6 +142,8 @@ export const PaymentPage: React.FC = () => {
   }
 
   // ── Submit handler ──────────────────────────────────────────────────────────
+  const N8N_WEBHOOK = 'https://your-n8n-instance.cloud/webhook/your-payment-webhook-id';
+
   const handleSubmit = async () => {
     if (!txnId.trim()) { setError('Please enter your Transaction / UTR ID.'); return; }
     if (!screenshot) { setError('Please upload a screenshot of your payment.'); return; }
@@ -149,7 +151,31 @@ export const PaymentPage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
-      await submitPaymentProof(user.id, selectedSubmission.id, txnId, screenshot);
+      // 1. Save to Firestore + upload screenshot; get back the screenshot URL
+      const screenshotUrl = await submitPaymentProof(user.id, selectedSubmission.id, txnId, screenshot);
+
+      // 2. Fire n8n webhook (best-effort — don't block success on failure)
+      try {
+        const formData = new FormData();
+        formData.append('uid', user.id);
+        formData.append('email', user.email || passport.people?.[0]?.email || '');
+        formData.append('teamName', passport.team || '');
+        formData.append('category', passport.category || '');
+        formData.append('registrationId', registrationId);
+        formData.append('submissionId', selectedSubmission.id);
+        formData.append('transactionId', txnId.trim());
+        formData.append('screenshotUrl', screenshotUrl);
+        formData.append('track', selectedSubmission.track || '');
+        formData.append('submittedAt', new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
+        // Also attach the actual image file so n8n can access it
+        formData.append('paymentImage', screenshot, screenshot.name);
+
+        await fetch(N8N_WEBHOOK, { method: 'POST', body: formData });
+      } catch (webhookErr) {
+        // Webhook failure is non-fatal — payment is already saved in Firestore
+        console.warn('n8n webhook call failed (non-fatal):', webhookErr);
+      }
+
       setSubmitted(true);
     } catch (err) {
       console.error('Payment error:', err);
@@ -163,28 +189,66 @@ export const PaymentPage: React.FC = () => {
   if (submitted) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 w-full">
-        <div className="bg-[#FFFDF9] rounded-3xl border-2 border-[#138808] p-8 sm:p-12 shadow-2xl text-center relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-400 via-[#138808] to-emerald-500" />
-          <div className="relative mb-6">
-            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
-              <ShieldCheck className="w-10 h-10 text-[#138808]" />
+        <div className="bg-[#FFFDF9] rounded-3xl border-2 border-blue-300 p-8 sm:p-12 shadow-2xl text-center relative overflow-hidden">
+          {/* Top gradient bar – blue = under review */}
+          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-400 via-indigo-500 to-blue-400 animate-pulse" />
+
+          {/* Animated icon */}
+          <div className="relative mb-6 flex items-center justify-center">
+            <div className="w-24 h-24 rounded-full bg-blue-50 border-4 border-blue-200 flex items-center justify-center mx-auto z-10">
+              <Clock className="w-11 h-11 text-blue-600" />
             </div>
-            <div className="absolute inset-0 rounded-full bg-emerald-400/20 animate-ping" style={{ width: 80, height: 80, margin: 'auto' }} />
+            <div className="absolute w-24 h-24 rounded-full bg-blue-300/30 animate-ping" style={{ animationDuration: '1.5s' }} />
           </div>
-          <span className="inline-block px-3 py-1 bg-blue-100 text-blue-900 font-bold text-xs rounded-full uppercase tracking-wider mb-3">
-            Payment Under Verification
+
+          {/* Badge */}
+          <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-blue-100 text-blue-900 font-black text-xs rounded-full uppercase tracking-widest mb-4">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Verifying Payment
           </span>
-          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#0A2A5E] mb-3">Payment Submitted!</h2>
-          <p className="text-sm text-[#5A5A7A] leading-relaxed mb-8 max-w-md mx-auto">
-            Your payment proof has been received. The organizing committee will verify your transaction within <strong>24–48 hours</strong> and confirm your presentation slot via email.
+
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#0A2A5E] mb-3">
+            Payment Submitted! 🎉
+          </h2>
+          <p className="text-sm text-[#5A5A7A] leading-relaxed mb-6 max-w-md mx-auto">
+            Your payment proof has been received and sent to the organizing committee. We will verify your transaction within{' '}
+            <strong className="text-[#0A2A5E]">24–48 hours</strong> and confirm your presentation slot via email.
           </p>
+
+          {/* Transaction ID summary */}
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 mb-8 text-left space-y-2">
+            <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-1">Submission Summary</p>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-500 font-semibold">Transaction / UTR ID</span>
+              <span className="font-mono font-bold text-[#0A2A5E]">{txnId}</span>
+            </div>
+            {passport.team && (
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-500 font-semibold">Team Name</span>
+                <span className="font-bold text-[#0A2A5E]">{passport.team}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-500 font-semibold">Registration ID</span>
+              <span className="font-mono font-bold text-[#0A2A5E]">{registrationId}</span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-500 font-semibold">Amount</span>
+              <span className="font-black text-[#138808]">₹{REGISTRATION_FEE}</span>
+            </div>
+          </div>
+
           <Link to="/dashboard" className="inline-flex items-center justify-center gap-2 bg-[#0A2A5E] hover:bg-[#0d3570] text-white text-sm font-bold px-7 py-3 rounded-xl shadow-lg transition-all active:scale-95">
             <ArrowLeft className="w-4 h-4" /> Back to Dashboard
           </Link>
+          <p className="text-[11px] text-gray-400 mt-4">
+            For queries, contact{' '}
+            <a href="mailto:colloquium.ieee@slrtce.in" className="text-[#0A2A5E] font-semibold hover:underline">colloquium.ieee@slrtce.in</a>
+          </p>
         </div>
       </div>
     );
   }
+
 
   // ── Main payment form ───────────────────────────────────────────────────────
   return (

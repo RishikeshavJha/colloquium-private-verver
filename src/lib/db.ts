@@ -406,7 +406,7 @@ export async function submitPaymentProof(
   submissionId: string,
   transactionId: string,
   screenshotFile: File
-): Promise<void> {
+): Promise<string> {
   // 1. Upload screenshot to Firebase Storage
   const filename = `${Date.now()}_${screenshotFile.name}`;
   const storageRef = ref(storage, `payment-proofs/${uid}/${submissionId}/${filename}`);
@@ -428,6 +428,8 @@ export async function submitPaymentProof(
     paymentStatus: "UNDER_REVIEW",
     paymentSubmittedAt: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
   });
+
+  return screenshotUrl;
 }
 
 /** Fetch all submissions for a user */
