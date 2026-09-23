@@ -213,7 +213,99 @@ export const ProfilePage: React.FC = () => {
     .slice(0, 4)}`;
 
   const trackInfo = tracks.find((t) => t.name === passport.track);
-  const hasSubmitted = Boolean(passport.abstracts && passport.abstracts.length > 0);
+  const renderMemberIDCard = (person: Person, idx: number) => {
+    const isLeader = idx === 0;
+    const cardPassId = isLeader ? registrationId : `${registrationId}-M${idx + 1}`;
+
+    return (
+      <div key={idx} className="bg-white border-4 border-[#0A2A5E] rounded-2xl p-5 shadow-xl relative overflow-hidden flex flex-col justify-between text-left">
+        {/* Passport Header */}
+        <div>
+          <div className="flex items-center gap-2.5 border-b border-gray-200 pb-3 mb-4">
+            <img src="/slrtce-logo.png" alt="SLRTCE" className="h-7 w-auto object-contain" />
+            <div className="h-6 w-px bg-gray-300" />
+            <img src="/ieee-slrtce-logo.png" alt="IEEE" className="h-7 w-auto object-contain" />
+            <div className="ml-auto text-right">
+              <span className="text-[9px] font-mono text-gray-400 uppercase block">Pass ID</span>
+              <span className="font-mono text-xs font-black text-[#0A2A5E]">{cardPassId}</span>
+            </div>
+          </div>
+
+          {/* Card Content */}
+          <div className="space-y-3 text-xs">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <span className="text-[9px] uppercase font-bold text-gray-400 block">
+                  {passport.category === 'UG' ? (isLeader ? 'Team Leader' : `Team Member #${idx + 1}`) : 'Solo Participant'}
+                </span>
+                <h4 className="font-bold text-base text-[#0A2A5E]">{person.name || `Member ${idx + 1}`}</h4>
+                <p className="text-[11px] text-gray-600 font-medium">{person.email || 'No email provided'}</p>
+                {person.mobile && <p className="text-[10px] text-gray-500 font-mono mt-0.5">Mobile: {person.mobile}</p>}
+              </div>
+              <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider shrink-0 ${isLeader ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-blue-50 text-[#0A2A5E] border border-blue-200'}`}>
+                {isLeader ? 'Leader' : `Member ${idx + 1}`}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100">
+              <div>
+                <span className="text-[9px] uppercase font-bold text-gray-400 block">Category</span>
+                <span className="font-bold text-[#FF6B00]">{passport.category === 'UG' ? 'UG / Diploma' : passport.category || 'N/A'}</span>
+              </div>
+              <div>
+                <span className="text-[9px] uppercase font-bold text-gray-400 block">Year of Study</span>
+                <span className="font-bold text-[#0A2A5E]">{person.year || leader.year || 'N/A'}</span>
+              </div>
+            </div>
+
+            <div>
+              <span className="text-[9px] uppercase font-bold text-gray-400 block">Event Track</span>
+              <span className="font-bold text-xs text-[#0A2A5E] block">
+                {passport.track || 'No track selected'}
+              </span>
+              {trackInfo && (
+                <span className="text-[10px] text-gray-500 italic block mt-0.5">"{trackInfo.short}"</span>
+              )}
+            </div>
+
+            <div>
+              <span className="text-[9px] uppercase font-bold text-gray-400 block">College / Institute</span>
+              <span className="font-semibold text-xs text-[#0A2A5E] block">
+                {person.institution || leader.institution || 'Affiliated Institution'}
+              </span>
+              <span className="text-[10px] text-gray-500 block">{person.department || leader.department}</span>
+            </div>
+
+            {passport.category === 'UG' && passport.team && (
+              <div>
+                <span className="text-[9px] uppercase font-bold text-gray-400 block">Team Name</span>
+                <span className="font-bold text-xs text-[#0A2A5E]">{passport.team}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Barcode Footer & Official Stamp */}
+        <div className="mt-5 pt-3 border-t-2 border-dashed border-gray-200 flex items-end justify-between">
+          <div className="space-y-1">
+            <div className="h-5 w-32 bg-[repeating-linear-gradient(90deg,#0A2A5E,#0A2A5E_2px,transparent_2px,transparent_4px,#0A2A5E_4px,#0A2A5E_6px,transparent_6px,transparent_7px)] opacity-60" />
+            <span className="text-[8px] font-mono text-gray-400 block tracking-wider">OFFICIAL EVENT CODE</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-1 shrink-0">
+            <div className="w-14 h-14 rounded-full border-2 border-dashed border-[#FF6B00] flex flex-col items-center justify-center rotate-6 select-none pointer-events-none bg-[#FF6B00]/5 shadow-xs">
+              <span className="text-[6px] font-black text-[#FF6B00] uppercase tracking-wider">IEEE SLRTCE</span>
+              <span className="text-[10px] font-black text-[#0A2A5E] leading-tight">INSPIRE</span>
+              <span className="text-[7px] font-bold text-[#138808]">2026</span>
+            </div>
+            <span className="text-[10px] font-bold text-[#138808] flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" /> Valid Pass
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12 w-full flex flex-col items-center">
@@ -224,10 +316,12 @@ export const ProfilePage: React.FC = () => {
           PARTICIPANT PROFILE
         </div>
         <h1 className="font-display text-2xl sm:text-3xl sm:text-4xl font-extrabold text-[#0A2A5E]">
-          Participant Profile
+          {hasSubmitted ? 'Official Event Passes' : 'Participant Profile'}
         </h1>
         <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1 text-center">
-          Review your profile details and team members for event records.
+          {hasSubmitted
+            ? 'Verified event passes and credentials for entry and presentation access.'
+            : 'Review and update your profile details and team members for event records.'}
         </p>
       </div>
 
@@ -236,8 +330,8 @@ export const ProfilePage: React.FC = () => {
           <div className="flex items-center gap-3 text-left">
             <Lock className="w-5 h-5 text-amber-700 shrink-0" />
             <div>
-              <span className="text-xs font-bold text-amber-900 block uppercase tracking-wide">Profile Locked Post-Submission</span>
-              <span className="text-[11px] text-amber-800 font-medium">Your submission has been received and is under review. Profile editing is disabled.</span>
+              <span className="text-xs font-bold text-amber-900 block uppercase tracking-wide">Submission Received · Profile Locked</span>
+              <span className="text-[11px] text-amber-800 font-medium">Your abstract/ppt has been submitted and is under review. Profile editing is disabled.</span>
             </div>
           </div>
           <Link
@@ -257,7 +351,36 @@ export const ProfilePage: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {hasSubmitted ? (
+        /* Submitted View: Remove left form side completely & display official ID Cards for all members */
+        <div className="w-full max-w-4xl mx-auto space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#C8B89A]/40 pb-4">
+            <div>
+              <h3 className="font-display text-xl font-extrabold text-[#0A2A5E] uppercase tracking-wider">
+                {passport.people.length > 1
+                  ? `Official Team Event Passes (${passport.people.length} Members)`
+                  : 'Official Participant Event Pass'}
+              </h3>
+              <p className="text-xs text-[#5A5A7A] mt-0.5 font-medium">
+                Verified event credentials for entry, presentation, and track participation at INSPIRE Colloquium 2026.
+              </p>
+            </div>
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-1.5 bg-[#0A2A5E] hover:bg-[#1E3A8A] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition-all shrink-0"
+            >
+              <span>← Return to Dashboard</span>
+            </Link>
+          </div>
+
+          {/* Cards Grid */}
+          <div className={`grid grid-cols-1 ${passport.people.length > 1 ? 'md:grid-cols-2' : 'max-w-md mx-auto'} gap-6`}>
+            {passport.people.map((person, idx) => renderMemberIDCard(person, idx))}
+          </div>
+        </div>
+      ) : (
+        /* Standard 2-Column Editable View */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
         {/* Left 7 Cols: Form Editor */}
         <div className="lg:col-span-7">
           <form onSubmit={handleSave} className="space-y-6">
@@ -939,6 +1062,7 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };
