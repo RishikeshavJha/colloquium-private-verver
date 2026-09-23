@@ -124,7 +124,7 @@ export const yearOptionsFor = (category: string, courseType?: string) => {
   return ['PhD Scholar / Candidate', 'Post-Doctoral Researcher'];
 };
 
-export const WHATSAPP_LINK = 'https://chat.whatsapp.com/CrjTmSgQZcTLxtb4gedUKC';
+export const WHATSAPP_LINK = 'https://whatsapp.com/channel/0029VbDzr4oFMqrbOY62351F';
 
 export interface AuthUser {
   id: string;

@@ -8,7 +8,6 @@ interface CommunityQRProps {
 
 export const CommunityQR: React.FC<CommunityQRProps> = ({ className = '' }) => {
   const [copied, setCopied] = useState(false);
-  const [imgLoaded, setImgLoaded] = useState(true);
   const [settleKey, setSettleKey] = useState(0);
 
   const handleCopy = () => {
@@ -21,10 +20,6 @@ export const CommunityQR: React.FC<CommunityQRProps> = ({ className = '' }) => {
     setSettleKey((prev) => prev + 1);
   };
 
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
-    WHATSAPP_LINK
-  )}&color=0A2A5E&bgcolor=FAF6EE&margin=10`;
-
   return (
     <div
       className={`relative bg-[#FAF6EE] border-2 border-[#C8B89A] rounded-2xl shadow-xl overflow-hidden p-4 sm:p-6 text-[#0A2A5E] ${className}`}
@@ -33,28 +28,28 @@ export const CommunityQR: React.FC<CommunityQRProps> = ({ className = '' }) => {
         backgroundSize: "16px 16px",
       }}
     >
-      {/* Decorative Postal Stamp Corner Notch Styling */}
+      {/* Decorative Badge */}
       <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0A2A5E]/5 border border-[#0A2A5E]/15 text-[10px] font-bold tracking-wider uppercase text-[#0A2A5E]">
         <ShieldCheck className="w-3.5 h-3.5 text-[#25D366]" />
-        <span>Official Group</span>
+        <span>Official Channel</span>
       </div>
 
       {/* Postmark Header */}
       <div className="text-center mb-4 mt-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#FF9933]/15 text-[#FF6B00] text-[11px] font-bold tracking-widest uppercase mb-1">
-          <Sparkles className="w-3 h-3" /> OFFICIAL WHATSAPP GROUP
+          <Sparkles className="w-3 h-3" /> OFFICIAL WHATSAPP CHANNEL
         </div>
         <h3 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-[#0A2A5E]">
-          Join the WhatsApp Group
+          Join the WhatsApp Channel
         </h3>
         <p className="text-xs sm:text-sm text-[#0A2A5E]/75 max-w-md mx-auto mt-1">
           Get quick updates, schedules, problem statements, and connect with other participants.
         </p>
       </div>
 
-      {/* QR Code Envelope / Stamp Card Frame with Settling Transition */}
+      {/* QR Code Frame with Settling Animation */}
       <div className="flex flex-col items-center justify-center my-4 relative select-none">
-        {/* Shockwave / Landing Halo Pulse when QR settles */}
+        {/* Shockwave Halo Pulse when QR settles */}
         <div
           key={`pulse-${settleKey}`}
           className="absolute w-[220px] h-[220px] sm:w-[250px] sm:h-[250px] rounded-2xl border-2 border-[#0A2A5E]/20 animate-settle-pulse pointer-events-none"
@@ -63,7 +58,7 @@ export const CommunityQR: React.FC<CommunityQRProps> = ({ className = '' }) => {
         <div
           key={`settle-${settleKey}`}
           onClick={reTriggerSettle}
-          title="Click to re-align / settle QR code"
+          title="Click to re-animate the QR code"
           className="relative p-4 rounded-xl bg-white border-2 border-dashed border-[#0A2A5E]/40 shadow-xl group animate-qr-settle cursor-pointer hover:shadow-2xl transition-shadow duration-300"
         >
           {/* Top Postmark Stamp */}
@@ -81,24 +76,15 @@ export const CommunityQR: React.FC<CommunityQRProps> = ({ className = '' }) => {
             {/* Glowing Laser Scan Sweep Line */}
             <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#25D366] to-transparent shadow-[0_0_8px_#25D366] pointer-events-none z-10 animate-scan-sweep" />
 
-            {imgLoaded ? (
-              <img
-                src={qrImageUrl}
-                alt="INSPIRE Colloquium 2026 WhatsApp Group QR Code"
-                className="w-full h-full object-contain p-1 transition-transform duration-300 group-hover:scale-105"
-                onError={() => setImgLoaded(false)}
-              />
-            ) : (
-              /* Fallback SVG if image API is unavailable */
-              <div className="flex flex-col items-center justify-center p-3 text-center">
-                <MessageCircle className="w-12 h-12 text-[#25D366] mb-2 animate-bounce" />
-                <span className="text-xs font-bold text-[#0A2A5E]">WhatsApp Group Link</span>
-                <span className="text-[10px] text-gray-500 mt-1">Tap the button below to join directly</span>
-              </div>
-            )}
+            {/* Actual WhatsApp Channel QR Image */}
+            <img
+              src="/whatsapp-channel-qr.jpeg"
+              alt="INSPIRE Colloquium 2026 WhatsApp Channel QR Code"
+              className="w-full h-full object-contain p-1 transition-transform duration-300 group-hover:scale-105"
+            />
           </div>
 
-          {/* Heritage seal stamp mark with animated imprint */}
+          {/* Heritage seal stamp mark */}
           <div className="absolute -bottom-3 right-2 bg-[#D4AF37] text-[#0A2A5E] text-[9px] font-black px-2.5 py-0.5 rounded shadow border border-[#0A2A5E]/20 animate-stamp-imprint z-20">
             IEEE SLRTCE 2026
           </div>
@@ -118,7 +104,7 @@ export const CommunityQR: React.FC<CommunityQRProps> = ({ className = '' }) => {
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 min-h-[44px]"
         >
           <MessageCircle className="w-4 h-4 fill-current" />
-          <span>Join WhatsApp Group</span>
+          <span>Join WhatsApp Channel</span>
           <ExternalLink className="w-3.5 h-3.5 opacity-80" />
         </a>
 
@@ -135,7 +121,7 @@ export const CommunityQR: React.FC<CommunityQRProps> = ({ className = '' }) => {
           ) : (
             <>
               <Copy className="w-4 h-4 text-[#0A2A5E]/70" />
-              <span>Copy Invite Link</span>
+              <span>Copy Channel Link</span>
             </>
           )}
         </button>
@@ -143,7 +129,7 @@ export const CommunityQR: React.FC<CommunityQRProps> = ({ className = '' }) => {
 
       {/* Footer Info */}
       <p className="text-[11px] text-center text-[#0A2A5E]/60 mt-4">
-        Direct link: <span className="font-mono text-[10px] break-all text-[#0A2A5E]/80">{WHATSAPP_LINK}</span>
+        Channel link: <span className="font-mono text-[10px] break-all text-[#0A2A5E]/80">{WHATSAPP_LINK}</span>
       </p>
     </div>
   );

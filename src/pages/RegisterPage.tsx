@@ -1704,13 +1704,13 @@ export const RegisterPage: React.FC = () => {
           <div className="step-transition-enter max-w-[740px] mx-auto">
             <div className="border-b border-[#AA8246]/35 pb-3 sm:pb-4 mb-6 text-center">
               <span className="text-[11px] font-bold text-[#FF6B00] uppercase tracking-wider">
-                Step 4 of 5 • WhatsApp Community
+                Step 4 of 5 • WhatsApp Channel
               </span>
               <h2 className="font-display text-xl sm:text-3xl font-bold text-[#061838]">
-                Join the Official WhatsApp Community
+                Join the Official WhatsApp Channel
               </h2>
               <p className="text-xs sm:text-sm text-[#2D3142] mt-1 max-w-xl mx-auto font-medium">
-                Get instant updates, schedules, guidelines, and quick announcements directly on WhatsApp.
+                Get instant updates, schedules, guidelines, and quick announcements directly on the WhatsApp Channel.
               </p>
             </div>
 

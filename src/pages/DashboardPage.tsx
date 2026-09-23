@@ -394,7 +394,7 @@ export const DashboardPage: React.FC = () => {
               className="inline-flex items-center justify-center gap-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 text-[#128C7E] text-xs font-bold px-3.5 py-3 sm:py-2.5 rounded-xl transition-all min-h-[44px]"
             >
               <MessageCircle className="w-3.5 h-3.5" />
-              <span>WhatsApp Hub</span>
+              <span>WhatsApp Channel</span>
             </Link>
           </div>
         </div>
@@ -1335,9 +1335,9 @@ export const DashboardPage: React.FC = () => {
           {/* WhatsApp Card Callout */}
           <div className="bg-[#25D366]/10 border-2 border-[#25D366]/30 rounded-2xl p-4 sm:p-5 text-center">
             <MessageCircle className="w-8 h-8 text-[#25D366] mx-auto mb-2" />
-            <h4 className="font-bold text-sm text-[#0A2A5E]">Official WhatsApp Hub</h4>
+            <h4 className="font-bold text-sm text-[#0A2A5E]">Official WhatsApp Channel</h4>
             <p className="text-[11px] text-[#5A5A7A] mt-1 mb-3">
-              Scan the QR or click below to join the verified participant channel for real-time track updates.
+              Scan the QR or click below to join the official WhatsApp Channel for real-time track updates.
             </p>
             <div className="flex flex-col gap-2">
               <a

@@ -18,7 +18,7 @@ export const CommunityPage: React.FC = () => {
           OFFICIAL PARTICIPANT NETWORK
         </div>
         <h1 className="font-display text-2xl sm:text-3xl lg:text-5xl font-extrabold text-[#0A2A5E]">
-          INSPIRE Colloquium WhatsApp Community Hub
+          INSPIRE Colloquium WhatsApp Channel Hub
         </h1>
         <p className="text-xs sm:text-sm text-[#5A5A7A] max-w-xl mx-auto mt-2">
           Real-time coordination channel connecting authors, mentors, jury panels, and the IEEE SLRTCE organizing committee.
@@ -73,10 +73,10 @@ export const CommunityPage: React.FC = () => {
         <div className="space-y-4 text-xs text-[#5A5A7A]">
           <div className="border-b border-[#C8B89A]/30 pb-3">
             <h4 className="font-bold text-sm text-[#0A2A5E] mb-1">
-              Is joining the WhatsApp group mandatory?
+              Is joining the WhatsApp channel mandatory?
             </h4>
             <p className="leading-relaxed">
-              While email notifications are sent for formal decisions, urgent announcements, slot allocations, and immediate changes are dispatched via WhatsApp first. At least one member from each team must be in the group.
+              While email notifications are sent for formal decisions, urgent announcements, slot allocations, and immediate changes are dispatched via WhatsApp first. At least one member from each team must be in the channel.
             </p>
           </div>
 
@@ -85,7 +85,7 @@ export const CommunityPage: React.FC = () => {
               Can multiple team members join the group?
             </h4>
             <p className="leading-relaxed">
-              Yes! All registered participants, team members, and mentors are welcome to join using the invite link.
+              Yes! All registered participants, team members, and mentors are welcome to join using the channel link.
             </p>
           </div>
 
