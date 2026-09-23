@@ -196,7 +196,7 @@ export const DashboardPage: React.FC = () => {
 
   const isRegistered = !!passport.category && (passport.registered || !!leader.name);
 
-  const registrationId = `VIKAS-2026-${(passport.team || leader.name || 'PASS')
+  const registrationId = `INSPIRE-2026-${(passport.team || leader.name || 'PASS')
     .slice(0, 3)
     .toUpperCase()}-${Math.abs(
     (leader.email || 'slrtce').split('').reduce((acc, char) => acc + char.charCodeAt(0), 1000)

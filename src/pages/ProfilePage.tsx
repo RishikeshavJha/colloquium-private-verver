@@ -204,7 +204,7 @@ export const ProfilePage: React.FC = () => {
 
   const leader = passport.people[0] || emptyPerson();
 
-  const registrationId = `VIKAS-2026-${(passport.team || leader.name || 'PASS')
+  const registrationId = `INSPIRE-2026-${(passport.team || leader.name || 'PASS')
     .slice(0, 3)
     .toUpperCase()}-${Math.abs(
     (leader.email || 'slrtce').split('').reduce((acc, char) => acc + char.charCodeAt(0), 1000)
@@ -218,89 +218,107 @@ export const ProfilePage: React.FC = () => {
   const renderMemberIDCard = (person: Person, idx: number) => {
     const isLeader = idx === 0;
     const cardPassId = isLeader ? registrationId : `${registrationId}-M${idx + 1}`;
+    const roleLabel = passport.category === 'UG' ? (isLeader ? 'Team Leader' : `Team Member ${idx + 1}`) : 'Solo Participant';
+    const categoryColor = passport.category === 'UG' ? '#FF6B00' : passport.category === 'PG' ? '#0A2A5E' : '#138808';
 
     return (
-      <div key={idx} className="bg-white border-4 border-[#0A2A5E] rounded-2xl p-5 shadow-xl relative overflow-hidden flex flex-col justify-between text-left">
-        {/* Passport Header */}
-        <div>
-          <div className="flex items-center gap-2.5 border-b border-gray-200 pb-3 mb-4">
-            <img src="/slrtce-logo.png" alt="SLRTCE" className="h-7 w-auto object-contain" />
-            <div className="h-6 w-px bg-gray-300" />
-            <img src="/ieee-slrtce-logo.png" alt="IEEE" className="h-7 w-auto object-contain" />
-            <div className="ml-auto text-right">
-              <span className="text-[9px] font-mono text-gray-400 uppercase block">Pass ID</span>
-              <span className="font-mono text-xs font-black text-[#0A2A5E]">{cardPassId}</span>
-            </div>
+      <div key={idx} className="relative rounded-3xl overflow-hidden shadow-2xl flex flex-col" style={{background: 'linear-gradient(145deg, #0A1628 0%, #0A2A5E 40%, #1a1040 100%)', minHeight: '480px'}}>
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-10" style={{background: 'radial-gradient(circle, #FF6B00, transparent)'}} />
+          <div className="absolute -bottom-16 -left-12 w-56 h-56 rounded-full opacity-10" style={{background: 'radial-gradient(circle, #138808, transparent)'}} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-5" style={{backgroundImage: 'repeating-linear-gradient(45deg, white 0px, white 1px, transparent 1px, transparent 20px)'}} />
+        </div>
+
+        {/* Top Navy Header Band */}
+        <div className="relative z-10 px-5 pt-5 pb-4 flex items-center justify-between" style={{borderBottom: '1px solid rgba(255,255,255,0.1)'}}>
+          <div className="flex items-center gap-2.5">
+            <img src="/slrtce-logo.png" alt="SLRTCE" className="h-9 w-auto object-contain" style={{filter: 'brightness(10)'}} />
+            <div className="h-7 w-px bg-white/30" />
+            <img src="/ieee-slrtce-logo.png" alt="IEEE" className="h-9 w-auto object-contain" style={{filter: 'brightness(10)'}} />
           </div>
-
-          {/* Card Content */}
-          <div className="space-y-3 text-xs">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <span className="text-[9px] uppercase font-bold text-gray-400 block">
-                  {passport.category === 'UG' ? (isLeader ? 'Team Leader' : `Team Member #${idx + 1}`) : 'Solo Participant'}
-                </span>
-                <h4 className="font-bold text-base text-[#0A2A5E]">{person.name || `Member ${idx + 1}`}</h4>
-                <p className="text-[11px] text-gray-600 font-medium">{person.email || 'No email provided'}</p>
-                {person.mobile && <p className="text-[10px] text-gray-500 font-mono mt-0.5">Mobile: {person.mobile}</p>}
-              </div>
-              <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider shrink-0 ${isLeader ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-blue-50 text-[#0A2A5E] border border-blue-200'}`}>
-                {isLeader ? 'Leader' : `Member ${idx + 1}`}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100">
-              <div>
-                <span className="text-[9px] uppercase font-bold text-gray-400 block">Category</span>
-                <span className="font-bold text-[#FF6B00]">{passport.category === 'UG' ? 'UG / Diploma' : passport.category || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-[9px] uppercase font-bold text-gray-400 block">Year of Study</span>
-                <span className="font-bold text-[#0A2A5E]">{person.year || leader.year || 'N/A'}</span>
-              </div>
-            </div>
-
-            <div>
-              <span className="text-[9px] uppercase font-bold text-gray-400 block">Event Track</span>
-              <span className="font-bold text-xs text-[#0A2A5E] block">
-                {passport.track || 'No track selected'}
-              </span>
-              {trackInfo && (
-                <span className="text-[10px] text-gray-500 italic block mt-0.5">"{trackInfo.short}"</span>
-              )}
-            </div>
-
-            <div>
-              <span className="text-[9px] uppercase font-bold text-gray-400 block">College / Institute</span>
-              <span className="font-semibold text-xs text-[#0A2A5E] block">
-                {person.institution || leader.institution || 'Affiliated Institution'}
-              </span>
-              <span className="text-[10px] text-gray-500 block">{person.department || leader.department}</span>
-            </div>
-
-            {passport.category === 'UG' && passport.team && (
-              <div>
-                <span className="text-[9px] uppercase font-bold text-gray-400 block">Team Name</span>
-                <span className="font-bold text-xs text-[#0A2A5E]">{passport.team}</span>
-              </div>
-            )}
+          <div className="text-right">
+            <div className="text-[8px] font-mono text-white/40 uppercase tracking-widest">PASS ID</div>
+            <div className="font-mono text-[11px] font-black text-amber-400 tracking-wider">{cardPassId}</div>
           </div>
         </div>
 
-        {/* Barcode Footer & Official Stamp */}
-        <div className="mt-5 pt-3 border-t-2 border-dashed border-gray-200 flex items-end justify-between">
-          <div className="space-y-1">
-            <div className="h-5 w-32 bg-[repeating-linear-gradient(90deg,#0A2A5E,#0A2A5E_2px,transparent_2px,transparent_4px,#0A2A5E_4px,#0A2A5E_6px,transparent_6px,transparent_7px)] opacity-60" />
-            <span className="text-[8px] font-mono text-gray-400 block tracking-wider">OFFICIAL EVENT CODE</span>
-          </div>
+        {/* Role Banner */}
+        <div className="relative z-10 mx-5 mt-4 flex items-center justify-between">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border"
+            style={{background: isLeader ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.08)', borderColor: isLeader ? '#FBBF24' : 'rgba(255,255,255,0.2)', color: isLeader ? '#FBBF24' : 'rgba(255,255,255,0.7)'}}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isLeader ? 'bg-amber-400' : 'bg-white/50'}`} />
+            {roleLabel}
+          </span>
+          <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">INSPIRE Colloquium 2026</span>
+        </div>
 
-          <div className="flex flex-col items-center gap-1 shrink-0">
-            <div className="w-14 h-14 rounded-full border-2 border-dashed border-[#FF6B00] flex flex-col items-center justify-center rotate-6 select-none pointer-events-none bg-[#FF6B00]/5 shadow-xs">
-              <span className="text-[6px] font-black text-[#FF6B00] uppercase tracking-wider">IEEE SLRTCE</span>
-              <span className="text-[10px] font-black text-[#0A2A5E] leading-tight">INSPIRE</span>
-              <span className="text-[7px] font-bold text-[#138808]">2026</span>
+        {/* Name Block */}
+        <div className="relative z-10 px-5 mt-4">
+          <h3 className="font-display text-2xl font-black text-white leading-tight tracking-tight">
+            {person.name || `Member ${idx + 1}`}
+          </h3>
+          <p className="text-sm text-amber-300/80 font-medium mt-0.5 truncate">{person.email || '—'}</p>
+          {person.mobile && (
+            <p className="text-xs text-white/40 font-mono mt-0.5">📱 {person.mobile}</p>
+          )}
+          {(person.linkedin) && (
+            <p className="text-[10px] text-sky-400/70 font-mono mt-0.5 truncate">🔗 {person.linkedin}</p>
+          )}
+        </div>
+
+        {/* Separator */}
+        <div className="relative z-10 mx-5 mt-4 border-t" style={{borderColor: 'rgba(255,255,255,0.08)'}} />
+
+        {/* Details Grid */}
+        <div className="relative z-10 px-5 mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+          <div>
+            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Category</div>
+            <div className="font-black text-sm mt-0.5" style={{color: categoryColor === '#FF6B00' ? '#FF9948' : categoryColor === '#138808' ? '#4ade80' : '#93c5fd'}}>
+              {passport.category === 'UG' ? 'UG / Diploma' : passport.category || 'N/A'}
             </div>
-            <span className="text-[10px] font-bold text-[#138808] flex items-center gap-1">
+          </div>
+          <div>
+            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Year of Study</div>
+            <div className="font-bold text-sm text-white mt-0.5">{person.year || leader.year || 'N/A'}</div>
+          </div>
+          <div>
+            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Event Track</div>
+            <div className="font-bold text-[12px] text-white mt-0.5 leading-snug">{passport.track || '—'}</div>
+            {trackInfo && <div className="text-[9px] italic mt-0.5" style={{color: 'rgba(255,255,255,0.35)'}}>"{trackInfo.short}"</div>}
+          </div>
+          <div>
+            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Department</div>
+            <div className="font-bold text-[12px] text-white mt-0.5 leading-snug">{person.department || leader.department || '—'}</div>
+          </div>
+          <div className="col-span-2">
+            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">College / Institute</div>
+            <div className="font-semibold text-[12px] text-white/85 mt-0.5 leading-snug">{person.institution || leader.institution || 'Affiliated Institution'}</div>
+          </div>
+          {passport.category === 'UG' && passport.team && (
+            <div className="col-span-2">
+              <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Team Name</div>
+              <div className="font-black text-sm text-amber-300 mt-0.5">{passport.team}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer: Barcode + Stamp */}
+        <div className="relative z-10 mt-auto mx-5 mb-5 pt-4 flex items-end justify-between" style={{borderTop: '1px dashed rgba(255,255,255,0.12)'}}>
+          <div>
+            <div className="h-8 w-36 rounded opacity-50" style={{backgroundImage: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.9) 0px, rgba(255,255,255,0.9) 2px, transparent 2px, transparent 4px, rgba(255,255,255,0.9) 4px, rgba(255,255,255,0.9) 6px, transparent 6px, transparent 7px)'}} />
+            <div className="text-[7px] font-mono mt-1 tracking-widest" style={{color: 'rgba(255,255,255,0.25)'}}>IEEE SLRTCE · OFFICIAL EVENT PASS</div>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <div className="relative w-16 h-16">
+              <div className="absolute inset-0 rounded-full border-2 border-dashed border-amber-400/60 animate-spin" style={{animationDuration: '12s'}} />
+              <div className="absolute inset-1 rounded-full flex flex-col items-center justify-center" style={{background: 'rgba(255,255,255,0.06)'}}>
+                <span className="text-[6px] font-black text-amber-400 uppercase tracking-wider leading-none">IEEE</span>
+                <span className="text-[9px] font-black text-white leading-none">INSPIRE</span>
+                <span className="text-[7px] font-bold leading-none" style={{color: '#4ade80'}}>2026</span>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
               <ShieldCheck className="w-3 h-3" /> Valid Pass
             </span>
           </div>
