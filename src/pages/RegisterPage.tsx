@@ -516,12 +516,24 @@ export const RegisterPage: React.FC = () => {
           people: finalPeople,
         }));
 
-        // ── Save to Firestore ─────────────────────────────────────────────
+        setIsAssemblingQR(true);
+        window.scrollTo({ top: 120, behavior: 'smooth' });
+        setTimeout(() => {
+          setIsAssemblingQR(false);
+          setStep(4);
+          window.scrollTo({ top: 100, behavior: 'smooth' });
+        }, 2450);
+        return;
+      }
+      if (step === 4) {
+        // ── Save to Firestore & Trigger Welcome Webhook ONLY on final step ──────
         const currentUser = getAuthUser();
         if (currentUser?.id) {
           setFirestoreSaving(true);
           setFirestoreError('');
           try {
+            const finalPeople = data.category === 'UG' ? data.people : [data.people[0] || emptyPerson()];
+            const finalTeam = data.category === 'UG' ? data.team : '';
             const leader = finalPeople[0];
             const members: FirestoreTeamMember[] = finalPeople.slice(1).map((p) => ({
               id: '',
@@ -537,21 +549,25 @@ export const RegisterPage: React.FC = () => {
               linkedinProfileUrl: p.linkedin || '',
             }));
 
-            await saveUserRegistration(currentUser.id, {
-              name: leader.name,
-              email: leader.email,
-              phoneNumber: leader.mobile,
-              college: leader.institution,
-              branch: leader.department,
-              degree: data.category,
-              year: leader.year,
-              gender: '',
-              githubProfileUrl: leader.github || '',
-              linkedinProfileUrl: leader.linkedin || '',
-              teamName: finalTeam,
-              memberEmails: finalPeople.map((p) => p.email).filter(Boolean),
-              teamMembers: members,
-            });
+            await saveUserRegistration(
+              currentUser.id,
+              {
+                name: leader.name,
+                email: leader.email,
+                phoneNumber: leader.mobile,
+                college: leader.institution,
+                branch: leader.department,
+                degree: data.category,
+                year: leader.year,
+                gender: '',
+                githubProfileUrl: leader.github || '',
+                linkedinProfileUrl: leader.linkedin || '',
+                teamName: finalTeam,
+                memberEmails: finalPeople.map((p) => p.email).filter(Boolean),
+                teamMembers: members,
+              },
+              { triggerWebhook: true } // Webhook triggers ONLY here on brand-new completed registration
+            );
           } catch (err) {
             console.error('Firestore save error:', err);
             setFirestoreError('Registration saved locally. Firestore sync will retry on next login.');
@@ -561,16 +577,6 @@ export const RegisterPage: React.FC = () => {
         }
         // ──────────────────────────────────────────────────────────────────
 
-        setIsAssemblingQR(true);
-        window.scrollTo({ top: 120, behavior: 'smooth' });
-        setTimeout(() => {
-          setIsAssemblingQR(false);
-          setStep(4);
-          window.scrollTo({ top: 100, behavior: 'smooth' });
-        }, 2450);
-        return;
-      }
-      if (step === 4) {
         setIsBuildingProfile(true);
         window.scrollTo({ top: 120, behavior: 'smooth' });
         setTimeout(() => {

@@ -157,7 +157,8 @@ export async function saveUserRegistration(
     teamName: string;
     memberEmails: string[];
     teamMembers: FirestoreTeamMember[];
-  }
+  },
+  options?: { triggerWebhook?: boolean }
 ): Promise<void> {
   const now = new Date().toISOString();
 
@@ -199,42 +200,44 @@ export async function saveUserRegistration(
     });
   }
 
-  // Trigger n8n Registration Welcome Email Webhook
-  try {
-    const payload = {
-      uid,
-      name: data.name,
-      email: data.email,
-      phoneNumber: data.phoneNumber,
-      college: data.college,
-      branch: data.branch,
-      degree: data.degree,
-      year: data.year,
-      teamName: data.teamName,
-      memberEmails: data.memberEmails,
-      teamMembers: data.teamMembers,
-      registrationDateTime: now,
-    };
+  // Trigger n8n Registration Welcome Email Webhook ONLY when explicitly requested (brand new initial registration completion)
+  if (options?.triggerWebhook) {
+    try {
+      const payload = {
+        uid,
+        name: data.name,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        college: data.college,
+        branch: data.branch,
+        degree: data.degree,
+        year: data.year,
+        teamName: data.teamName,
+        memberEmails: data.memberEmails,
+        teamMembers: data.teamMembers,
+        registrationDateTime: now,
+      };
 
-    fetch(REGISTRATION_WELCOME_WEBHOOK_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    }).catch((err) => {
-      console.warn("Standard fetch to registration webhook failed, attempting no-cors fallback:", err);
       fetch(REGISTRATION_WELCOME_WEBHOOK_URL, {
         method: "POST",
-        mode: "no-cors",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
-      }).catch((e) => console.error("Registration webhook error:", e));
-    });
-  } catch (err) {
-    console.error("Failed to trigger registration n8n webhook:", err);
+      }).catch((err) => {
+        console.warn("Standard fetch to registration webhook failed, attempting no-cors fallback:", err);
+        fetch(REGISTRATION_WELCOME_WEBHOOK_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }).catch((e) => console.error("Registration webhook error:", e));
+      });
+    } catch (err) {
+      console.error("Failed to trigger registration n8n webhook:", err);
+    }
   }
 }
 
