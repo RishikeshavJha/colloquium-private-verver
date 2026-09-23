@@ -20,6 +20,8 @@ import {
   Eye,
   CheckCircle2,
   X,
+  CreditCard,
+  ShieldCheck,
 } from 'lucide-react';
 
 const trackThemeImages: Record<string, { image: string; color: string }> = {
@@ -166,6 +168,7 @@ export const DashboardPage: React.FC = () => {
   const selectedSubmission = firestoreSubmissions.find(s => s.evaluationStatus === 'SELECTED');
   const isSelected = Boolean(selectedSubmission);
   const isRejected = !isSelected && firestoreSubmissions.length > 0 && firestoreSubmissions.every(s => s.evaluationStatus === 'REJECTED');
+  const payStatus = selectedSubmission?.paymentStatus || 'NOT_PAID';
 
   // Helper to validate whether a URL points to an actual uploaded file
   const isValidSubmissionFileUrl = (url?: string | null): boolean => {
@@ -560,6 +563,96 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Shortlist Selection & Payment Confirmation Banner Card */}
+      {isSelected && (
+        <div className="mb-8 bg-[#FFFDF9] border-2 border-[#138808] rounded-2xl p-5 sm:p-7 shadow-xl relative overflow-hidden backdrop-blur-sm">
+          {/* Top Decorative Header Accent */}
+          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-500 via-[#138808] to-emerald-600" />
+
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 pb-5 border-b border-emerald-900/10">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-black uppercase tracking-wider">
+                <CreditCard className="w-3.5 h-3.5 text-emerald-700" />
+                SHORTLISTED · PAYMENT & SLOT CONFIRMATION
+              </div>
+              <h2 className="font-display text-xl sm:text-2xl font-black text-[#0A2A5E]">
+                Registration Fee & Presentation Slot Confirmation
+              </h2>
+              <p className="text-xs sm:text-sm text-[#5A5A7A] max-w-2xl leading-relaxed">
+                🎉 Congratulations! Your project has been selected for the INSPIRE Colloquium 2026 presentation round. Fee verification details will be processed below.
+              </p>
+            </div>
+
+            {/* Status Pill */}
+            <div className="shrink-0">
+              {payStatus === 'PAID' ? (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-100 text-emerald-900 border-2 border-emerald-400 font-bold text-xs uppercase tracking-wider shadow-sm">
+                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                  Fee Verified & Slot Confirmed
+                </span>
+              ) : payStatus === 'FAILED' ? (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-100 text-rose-900 border-2 border-rose-400 font-bold text-xs uppercase tracking-wider shadow-sm">
+                  <AlertCircle className="w-4 h-4 text-rose-700" />
+                  Verification Issue · Contact Admin
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-100 text-amber-950 border-2 border-amber-400 font-bold text-xs uppercase tracking-wider shadow-sm animate-pulse">
+                  <Clock className="w-4 h-4 text-amber-700" />
+                  Payment Details Pending
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Payment Card Body */}
+          <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-5 items-center">
+            {/* Left 2 Cols: Details & Placeholder Notice */}
+            <div className="md:col-span-2 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200 text-xs">
+                <div>
+                  <span className="text-[10px] text-gray-500 font-bold uppercase block">Pass ID</span>
+                  <span className="font-mono font-bold text-[#0A2A5E]">{registrationId}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 font-bold uppercase block">Category</span>
+                  <span className="font-bold text-[#FF6B00]">{passport.category === 'UG' ? 'UG / Diploma' : passport.category}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 font-bold uppercase block">Selected Track</span>
+                  <span className="font-bold text-[#0A2A5E] truncate block">{effectiveTrack || 'Ideathon Track'}</span>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-300 text-xs text-amber-950 flex items-start gap-3">
+                <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <strong className="font-bold text-amber-900 block mb-0.5">Payment Details Opening Soon</strong>
+                  The organizing committee will share the official registration fee payment details and upload instructions shortly. Keep your Pass ID ready.
+                </div>
+              </div>
+            </div>
+
+            {/* Right Col: Action Button / Placeholder Widget */}
+            <div className="p-4 rounded-xl bg-white border-2 border-[#C8B89A] flex flex-col items-center justify-center text-center space-y-2.5 shadow-sm">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 text-[#138808] flex items-center justify-center">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-[#0A2A5E] block">Registration Fee Payment</span>
+                <span className="text-[10px] text-gray-500">Details will be shared shortly</span>
+              </div>
+              <button
+                disabled
+                className="w-full py-2 px-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-400 font-bold text-xs cursor-not-allowed flex items-center justify-center gap-1.5"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Payment Details Coming Soon</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Grid: Roadmap + Passport Widget */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mb-8 sm:mb-10">
@@ -962,13 +1055,14 @@ export const DashboardPage: React.FC = () => {
                           <span>Uploaded: {sub.createdAtIST || 'Recorded'}</span>
                         </div>
 
-                        {/* Evaluator Remarks & Teacher Details */}
+                        {/* Review Panel Feedback */}
                         {sub.evaluatorRemarks && (
-                          <div className="mt-2.5 p-2.5 bg-blue-50/80 border border-blue-200 rounded-lg text-xs">
-                            <span className="font-bold text-blue-950 block">
-                              Teacher Feedback {sub.evaluatedBy ? `(${sub.evaluatedBy})` : ''}:
+                          <div className="mt-2.5 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs">
+                            <span className="font-bold text-emerald-950 flex items-center gap-1.5 mb-1">
+                              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                              Review Panel Remarks:
                             </span>
-                            <p className="text-blue-900 mt-0.5 italic leading-relaxed">"{sub.evaluatorRemarks}"</p>
+                            <p className="text-emerald-900 font-medium italic leading-relaxed pl-5">"{sub.evaluatorRemarks}"</p>
                           </div>
                         )}
                       </div>
