@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { loadPassport, savePassport, emptyPerson, getAuthUser, WHATSAPP_LINK, type Passport } from '../utils/storage';
 import { getUserSubmissions, type FirestoreSubmission } from '../lib/db';
 import { tracks } from '../data/tracks';
@@ -18,6 +18,8 @@ import {
   Lock,
   ArrowRight,
   Eye,
+  CheckCircle2,
+  X,
 } from 'lucide-react';
 
 const trackThemeImages: Record<string, { image: string; color: string }> = {
@@ -34,10 +36,21 @@ const trackThemeImages: Record<string, { image: string; color: string }> = {
 
 export const DashboardPage: React.FC = () => {
   useInspireBackground('quiet');
+  const location = useLocation();
   const [passport, setPassport] = useState<Passport>(() => loadPassport());
   const [_user, setUser] = useState(() => getAuthUser());
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 });
   const [firestoreSubmissions, setFirestoreSubmissions] = useState<(FirestoreSubmission & { id: string })[]>([]);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+  useEffect(() => {
+    if (location.state && (location.state as any).submissionSuccess) {
+      setShowSuccessToast(true);
+      window.history.replaceState({}, document.title);
+      const timer = setTimeout(() => setShowSuccessToast(false), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const p = loadPassport();
@@ -206,6 +219,47 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12 relative w-full">
+
+      {/* Submission Success Toast Modal */}
+      {showSuccessToast && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-[#FFFDF9] border-2 border-[#138808] rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative text-center flex flex-col items-center transform transition-all scale-100">
+            <button
+              onClick={() => setShowSuccessToast(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="relative mb-5">
+              <div className="w-20 h-20 rounded-full bg-emerald-100 text-[#138808] flex items-center justify-center shadow-inner relative z-10">
+                <CheckCircle2 className="w-12 h-12" />
+              </div>
+              <div className="absolute inset-0 rounded-full bg-emerald-400/30 animate-ping" />
+            </div>
+
+            <span className="inline-block px-3 py-1 bg-emerald-100 text-[#138808] font-bold text-xs rounded-full uppercase tracking-wider mb-2">
+              Success
+            </span>
+
+            <h3 className="font-display text-2xl font-black text-[#0A2A5E] mb-2">
+              Submission Received!
+            </h3>
+
+            <p className="font-sans text-sm text-[#5A5A7A] mb-6 leading-relaxed">
+              Your submission has been received. Kindly wait while we evaluate it.
+            </p>
+
+            <button
+              onClick={() => setShowSuccessToast(false)}
+              className="w-full bg-[#138808] hover:bg-[#0f6b06] text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 text-sm"
+            >
+              Got it, thanks!
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Top Banner Alert if Registration Incomplete */}
       {!isRegistered && (

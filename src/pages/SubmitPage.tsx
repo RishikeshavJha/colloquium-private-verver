@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { loadPassport, savePassport, getAuthUser, type Passport, type Abstract } from '../utils/storage';
 import { uploadPPTFile, saveProjectSubmission, getUserSubmissions, type FirestoreSubmission } from '../lib/db';
 import { tracks } from '../data/tracks';
@@ -41,12 +41,12 @@ export const SubmitPage: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [showWarning, setShowWarning] = useState<boolean>(false);
   const [existingSubmission, setExistingSubmission] = useState<(FirestoreSubmission & { id: string }) | null>(null);
   const [firestoreLoading, setFirestoreLoading] = useState(false);
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
+  const navigate = useNavigate();
   const category = (passport.category || user?.degree || '').toUpperCase();
   const isUG = category.includes('UG') || category.includes('UNDERGRADUATE') || category === 'DIPLOMA';
 
@@ -394,15 +394,8 @@ export const SubmitPage: React.FC = () => {
       savePassport(updatedPassport);
       setPassport(updatedPassport);
 
-      setSuccessMessage(
-        isUG
-          ? `PPT Presentation "${title}" successfully recorded under Reference ${newAbstract.id}!`
-          : `Abstract "${title}" submitted successfully under Reference ${newAbstract.id}!`
-      );
-      setTitle('');
-      setSummary('');
-      setFile(null);
-      window.scrollTo({ top: 100, behavior: 'smooth' });
+      // 5. Redirect to dashboard with success toast
+      navigate('/dashboard', { state: { submissionSuccess: true } });
     } catch (err) {
       console.error('Submission error:', err);
       setFirestoreError('Upload failed. Please check your connection and try again.');
@@ -436,27 +429,6 @@ export const SubmitPage: React.FC = () => {
           Upload your extended abstract articulating your research challenge, methodology, and innovation.
         </p>
       </div>
-
-      {/* Success Alert */}
-      {successMessage && (
-        <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-green-50 border-2 border-green-500 text-green-900 flex flex-col sm:flex-row items-start justify-between gap-4 shadow-md">
-          <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-6 h-6 text-green-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-base font-bold">{successMessage}</p>
-              <p className="text-sm text-green-700 mt-1">
-                Our editorial review committee has acknowledged receipt. You can track status in your Dashboard.
-              </p>
-            </div>
-          </div>
-          <Link
-            to="/dashboard"
-            className="text-sm font-bold text-white bg-green-700 hover:bg-green-800 px-4 py-2.5 rounded-xl shrink-0 inline-flex items-center justify-center shadow-sm"
-          >
-            Go to Dashboard →
-          </Link>
-        </div>
-      )}
 
       {/* Single PPT Limit Notice */}
       {passport.abstracts && passport.abstracts.length >= 1 && (
