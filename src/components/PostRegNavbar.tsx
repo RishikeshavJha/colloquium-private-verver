@@ -1,11 +1,19 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Menu, X, Lock } from 'lucide-react';
+import { Menu, X, Lock, CreditCard } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { getAuthUser, loadPassport, setAuthUser, type AuthUser } from '../utils/storage';
 
-const allNavLinks = [
+interface NavLinkItem {
+  name: string;
+  path: string;
+  authRequired: boolean;
+  locked?: boolean;
+  isPayment?: boolean;
+}
+
+const allNavLinks: NavLinkItem[] = [
   { name: 'Dashboard', path: '/dashboard', authRequired: true },
   { name: 'Submit Idea', path: '/submit', authRequired: true },
   { name: 'Profile', path: '/profile', authRequired: true },
@@ -18,12 +26,17 @@ const PostRegNavbar = () => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isRegistered, setIsRegistered] = useState(() => !!loadPassport().registered);
+  const [hasSubmitted, setHasSubmitted] = useState(() => {
+    const p = loadPassport();
+    return !!(p.abstracts && p.abstracts.length > 0);
+  });
   const [user, setUser] = useState<AuthUser | null>(getAuthUser());
 
   useEffect(() => {
     // Check registration status on route change or mount
     const p = loadPassport();
     setIsRegistered(!!p.registered);
+    setHasSubmitted(!!(p.abstracts && p.abstracts.length > 0));
   }, [location.pathname]);
 
   useEffect(() => {
@@ -44,12 +57,14 @@ const PostRegNavbar = () => {
         setAuthUser(u);
         const passport = loadPassport();
         setIsRegistered(!!passport.registered);
+        setHasSubmitted(!!(passport.abstracts && passport.abstracts.length > 0));
       } else {
         // Signed out
         const passport = loadPassport();
         setUser(null);
         setAuthUser(null);
         setIsRegistered(!!passport.registered);
+        setHasSubmitted(false);
       }
     });
     return () => unsubscribe();
@@ -90,9 +105,13 @@ const PostRegNavbar = () => {
         {!isEntrancePage && isRegistered ? (
           <nav className="hidden lg:flex space-x-1 xl:space-x-2 items-center font-sans font-bold text-[0.72rem] xl:text-[0.78rem] tracking-wide lg:absolute lg:left-1/2 lg:-translate-x-1/2">
             {allNavLinks.map((link) => {
-              const isActive = location.pathname === link.path;
+              // Replace "Submit Idea" with "Payment" after submission
+              const resolvedLink = (link.path === '/submit' && hasSubmitted)
+                ? { ...link, name: 'Payment', path: '/payment', isPayment: true }
+                : link;
+              const isActive = location.pathname === resolvedLink.path && !resolvedLink.isPayment;
 
-              if ('locked' in link && link.locked) {
+              if ('locked' in resolvedLink && resolvedLink.locked) {
                 return (
                   <div
                     key={link.path}
@@ -114,15 +133,18 @@ const PostRegNavbar = () => {
 
               return (
                 <Link
-                  key={link.path}
-                  to={link.path}
+                  key={resolvedLink.path + resolvedLink.name}
+                  to={resolvedLink.path}
                   className={`transition-all px-3 py-1 rounded-full inline-flex items-center gap-1.5 ${
-                    isActive
+                    resolvedLink.isPayment
+                      ? 'text-amber-300 hover:text-white hover:bg-white/15 border border-amber-400/40'
+                      : isActive
                       ? 'bg-white text-[#0A2A5E] shadow-sm scale-105 font-extrabold'
                       : 'text-white/90 hover:text-white hover:bg-white/15'
                   }`}
                 >
-                  <span>{link.name}</span>
+                  {resolvedLink.isPayment && <CreditCard className="w-3 h-3" />}
+                  <span>{resolvedLink.name}</span>
                 </Link>
               );
             })}
@@ -191,16 +213,19 @@ const PostRegNavbar = () => {
 
             return (
               <Link
-                key={link.path}
-                to={link.path}
+                key={link.path + link.name}
+                to={(link.path === '/submit' && hasSubmitted) ? '/payment' : link.path}
                 className={`text-sm font-semibold transition-colors px-6 py-3 min-h-[44px] rounded-xl w-[90%] text-center inline-flex items-center justify-center gap-2 ${
                   location.pathname === link.path
                     ? 'bg-white text-[#0A2A5E] font-bold shadow-sm'
+                    : link.path === '/submit' && hasSubmitted
+                    ? 'text-amber-300 hover:bg-white/10 border border-amber-400/30'
                     : 'text-white/90 hover:bg-white/10 hover:text-[#FF9933]'
                 }`}
                 onClick={() => setMobileOpen(false)}
               >
-                <span>{link.name}</span>
+                {link.path === '/submit' && hasSubmitted && <CreditCard className="w-4 h-4" />}
+                <span>{link.path === '/submit' && hasSubmitted ? 'Payment' : link.name}</span>
               </Link>
             );
           })}

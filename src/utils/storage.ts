@@ -8,6 +8,8 @@ export interface Person {
   institution: string;
   department: string;
   year: string;
+  gender?: 'Male' | 'Female' | 'Other' | '';
+  courseType?: 'Degree' | 'Diploma' | '';
   github: string;
   linkedin: string;
 }
@@ -35,7 +37,7 @@ const STORAGE_KEY = 'vikas-2026-passport-v5';
 const AUTH_KEY = 'vikas-2026-auth-v5';
 
 export function emptyPerson(): Person {
-  return { name: '', mobile: '', email: '', institution: '', department: '', year: '', github: '', linkedin: '' };
+  return { name: '', mobile: '', email: '', institution: '', department: '', year: '', gender: '', courseType: '', github: '', linkedin: '' };
 }
 
 export function blankPassport(): Passport {
@@ -108,12 +110,19 @@ export function validProfile(data: Passport): boolean {
   return data.people.every(p => Object.keys(validatePerson(p)).length === 0);
 }
 
-export const yearOptionsFor = (category: string) =>
-  category === 'UG'
-    ? ['1st year', '2nd year', '3rd year', '4th year', 'Diploma (1st Year)', 'Diploma (2nd Year)', 'Diploma (3rd Year)']
-    : category === 'PG'
-    ? ['1st year', '2nd year']
-    : ['PhD Scholar / Candidate', 'Post-Doctoral Researcher'];
+export const yearOptionsFor = (category: string, courseType?: string) => {
+  if (category === 'UG') {
+    if (courseType === 'Diploma') {
+      return ['1st Year', '2nd Year', '3rd Year'];
+    }
+    // Default or Degree
+    return ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+  }
+  if (category === 'PG') {
+    return ['1st Year', '2nd Year'];
+  }
+  return ['PhD Scholar / Candidate', 'Post-Doctoral Researcher'];
+};
 
 export const WHATSAPP_LINK = 'https://chat.whatsapp.com/CrjTmSgQZcTLxtb4gedUKC';
 

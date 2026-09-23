@@ -18,7 +18,7 @@ import {
 
 export const ProfilePage: React.FC = () => {
   const [passport, setPassport] = useState<Passport>(() => loadPassport());
-  const [user, setUser] = useState(() => getAuthUser());
+  const [_user, setUser] = useState(() => getAuthUser());
   const [toast, setToast] = useState(false);
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
   const [showErrorBanner, setShowErrorBanner] = useState(false);
@@ -204,7 +204,7 @@ export const ProfilePage: React.FC = () => {
 
   const leader = passport.people[0] || emptyPerson();
 
-  const registrationId = `VIKAS-2026-${(passport.team || leader.name || 'PASS')
+  const registrationId = `INSPIRE-2026-${(passport.team || leader.name || 'PASS')
     .slice(0, 3)
     .toUpperCase()}-${Math.abs(
     (leader.email || 'slrtce').split('').reduce((acc, char) => acc + char.charCodeAt(0), 1000)
@@ -213,6 +213,119 @@ export const ProfilePage: React.FC = () => {
     .slice(0, 4)}`;
 
   const trackInfo = tracks.find((t) => t.name === passport.track);
+  const hasSubmitted = Boolean(passport.abstracts && passport.abstracts.length > 0);
+
+  const renderMemberIDCard = (person: Person, idx: number) => {
+    const isLeader = idx === 0;
+    const cardPassId = isLeader ? registrationId : `${registrationId}-M${idx + 1}`;
+    const roleLabel = passport.category === 'UG' ? (isLeader ? 'Team Leader' : `Team Member ${idx + 1}`) : 'Solo Participant';
+    const categoryColor = passport.category === 'UG' ? '#FF6B00' : passport.category === 'PG' ? '#0A2A5E' : '#138808';
+
+    return (
+      <div key={idx} className="relative rounded-3xl overflow-hidden shadow-2xl flex flex-col" style={{background: 'linear-gradient(145deg, #0A1628 0%, #0A2A5E 40%, #1a1040 100%)', minHeight: '480px'}}>
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-10" style={{background: 'radial-gradient(circle, #FF6B00, transparent)'}} />
+          <div className="absolute -bottom-16 -left-12 w-56 h-56 rounded-full opacity-10" style={{background: 'radial-gradient(circle, #138808, transparent)'}} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-5" style={{backgroundImage: 'repeating-linear-gradient(45deg, white 0px, white 1px, transparent 1px, transparent 20px)'}} />
+        </div>
+
+        {/* Top Navy Header Band */}
+        <div className="relative z-10 px-5 pt-5 pb-4 flex items-center justify-between" style={{borderBottom: '1px solid rgba(255,255,255,0.1)'}}>
+          <div className="flex items-center gap-2.5">
+            <img src="/slrtce-logo.png" alt="SLRTCE Logo" className="h-9 w-auto object-contain drop-shadow-sm" />
+            <div className="h-7 w-px bg-white/30" />
+            <img src="/ieee-slrtce-logo-white.png" alt="IEEE SLRTCE Logo" className="h-9 w-auto object-contain drop-shadow-sm" />
+          </div>
+          <div className="text-right">
+            <div className="text-[8px] font-mono text-white/40 uppercase tracking-widest">PASS ID</div>
+            <div className="font-mono text-[11px] font-black text-amber-400 tracking-wider">{cardPassId}</div>
+          </div>
+        </div>
+
+        {/* Role Banner */}
+        <div className="relative z-10 mx-5 mt-4 flex items-center justify-between">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border"
+            style={{background: isLeader ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.08)', borderColor: isLeader ? '#FBBF24' : 'rgba(255,255,255,0.2)', color: isLeader ? '#FBBF24' : 'rgba(255,255,255,0.7)'}}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isLeader ? 'bg-amber-400' : 'bg-white/50'}`} />
+            {roleLabel}
+          </span>
+          <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">INSPIRE Colloquium 2026</span>
+        </div>
+
+        {/* Name Block */}
+        <div className="relative z-10 px-5 mt-4">
+          <h3 className="font-display text-2xl font-black text-white leading-tight tracking-tight">
+            {person.name || `Member ${idx + 1}`}
+          </h3>
+          <p className="text-sm text-amber-300/80 font-medium mt-0.5 truncate">{person.email || '—'}</p>
+          {person.mobile && (
+            <p className="text-xs text-white/40 font-mono mt-0.5">📱 {person.mobile}</p>
+          )}
+          {(person.linkedin) && (
+            <p className="text-[10px] text-sky-400/70 font-mono mt-0.5 truncate">🔗 {person.linkedin}</p>
+          )}
+        </div>
+
+        {/* Separator */}
+        <div className="relative z-10 mx-5 mt-4 border-t" style={{borderColor: 'rgba(255,255,255,0.08)'}} />
+
+        {/* Details Grid */}
+        <div className="relative z-10 px-5 mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+          <div>
+            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Category</div>
+            <div className="font-black text-sm mt-0.5" style={{color: categoryColor === '#FF6B00' ? '#FF9948' : categoryColor === '#138808' ? '#4ade80' : '#93c5fd'}}>
+              {passport.category === 'UG' ? 'UG / Diploma' : passport.category || 'N/A'}
+            </div>
+          </div>
+          <div>
+            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Year of Study</div>
+            <div className="font-bold text-sm text-white mt-0.5">{person.year || leader.year || 'N/A'}</div>
+          </div>
+          <div>
+            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Event Track</div>
+            <div className="font-bold text-[12px] text-white mt-0.5 leading-snug">{passport.track || '—'}</div>
+            {trackInfo && <div className="text-[9px] italic mt-0.5" style={{color: 'rgba(255,255,255,0.35)'}}>"{trackInfo.short}"</div>}
+          </div>
+          <div>
+            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Department</div>
+            <div className="font-bold text-[12px] text-white mt-0.5 leading-snug">{person.department || leader.department || '—'}</div>
+          </div>
+          <div className="col-span-2">
+            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">College / Institute</div>
+            <div className="font-semibold text-[12px] text-white/85 mt-0.5 leading-snug">{person.institution || leader.institution || 'Affiliated Institution'}</div>
+          </div>
+          {passport.category === 'UG' && passport.team && (
+            <div className="col-span-2">
+              <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Team Name</div>
+              <div className="font-black text-sm text-amber-300 mt-0.5">{passport.team}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer: Barcode + Stamp */}
+        <div className="relative z-10 mt-auto mx-5 mb-5 pt-4 flex items-end justify-between" style={{borderTop: '1px dashed rgba(255,255,255,0.12)'}}>
+          <div>
+            <div className="h-8 w-36 rounded opacity-50" style={{backgroundImage: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.9) 0px, rgba(255,255,255,0.9) 2px, transparent 2px, transparent 4px, rgba(255,255,255,0.9) 4px, rgba(255,255,255,0.9) 6px, transparent 6px, transparent 7px)'}} />
+            <div className="text-[7px] font-mono mt-1 tracking-widest" style={{color: 'rgba(255,255,255,0.25)'}}>IEEE SLRTCE · OFFICIAL EVENT PASS</div>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <div className="relative w-16 h-16">
+              <div className="absolute inset-0 rounded-full border-2 border-dashed border-amber-400/60 animate-spin" style={{animationDuration: '12s'}} />
+              <div className="absolute inset-1 rounded-full flex flex-col items-center justify-center" style={{background: 'rgba(255,255,255,0.06)'}}>
+                <span className="text-[6px] font-black text-amber-400 uppercase tracking-wider leading-none">IEEE</span>
+                <span className="text-[9px] font-black text-white leading-none">INSPIRE</span>
+                <span className="text-[7px] font-bold leading-none" style={{color: '#4ade80'}}>2026</span>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" /> Valid Pass
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12 w-full flex flex-col items-center">
@@ -223,12 +336,32 @@ export const ProfilePage: React.FC = () => {
           PARTICIPANT PROFILE
         </div>
         <h1 className="font-display text-2xl sm:text-3xl sm:text-4xl font-extrabold text-[#0A2A5E]">
-          Participant Profile
+          {hasSubmitted ? 'Your Profile & Digital ID Pass' : 'Participant Profile'}
         </h1>
         <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1 text-center">
-          Review and update your profile details and team members for event records.
+          {hasSubmitted
+            ? 'Your verified participant details and digital ID pass for INSPIRE Colloquium 2026.'
+            : 'Review and update your profile details and team members for event records.'}
         </p>
       </div>
+
+      {hasSubmitted && (
+        <div className="mb-8 w-full max-w-2xl mx-auto p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3 text-left">
+            <Lock className="w-5 h-5 text-amber-700 shrink-0" />
+            <div>
+              <span className="text-xs font-bold text-amber-900 block uppercase tracking-wide">Submission Received · Profile Locked</span>
+              <span className="text-[11px] text-amber-800 font-medium">Your abstract/ppt has been submitted and is under evaluation. Profile editing is disabled.</span>
+            </div>
+          </div>
+          <Link
+            to="/dashboard"
+            className="text-xs font-bold text-[#0A2A5E] bg-white border border-[#C8B89A] px-3.5 py-2 rounded-xl hover:bg-gray-50 shrink-0 ml-3"
+          >
+            ← Dashboard
+          </Link>
+        </div>
+      )}
 
       {/* Toast Notification - Floating at top-right completely clear of footer */}
       {toast && (
@@ -238,7 +371,36 @@ export const ProfilePage: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {hasSubmitted ? (
+        /* Submitted View: Remove left form side completely & display official ID Cards for all members */
+        <div className="w-full max-w-4xl mx-auto space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#C8B89A]/40 pb-4">
+            <div>
+              <h3 className="font-display text-xl font-extrabold text-[#0A2A5E] uppercase tracking-wider">
+                {passport.people.length > 1
+                  ? `Your Team Profile & Digital ID Cards (${passport.people.length} Members)`
+                  : 'Your Profile & Digital ID Card'}
+              </h3>
+              <p className="text-xs text-[#5A5A7A] mt-0.5 font-medium">
+                Your verified participant profile and digital ID card for entry and presentation at INSPIRE Colloquium 2026.
+              </p>
+            </div>
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-1.5 bg-[#0A2A5E] hover:bg-[#1E3A8A] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition-all shrink-0"
+            >
+              <span>← Return to Dashboard</span>
+            </Link>
+          </div>
+
+          {/* Cards Grid */}
+          <div className={`grid grid-cols-1 ${passport.people.length > 1 ? 'md:grid-cols-2' : 'max-w-md mx-auto'} gap-6`}>
+            {passport.people.map((person, idx) => renderMemberIDCard(person, idx))}
+          </div>
+        </div>
+      ) : (
+        /* Standard 2-Column Editable View */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
         {/* Left 7 Cols: Form Editor */}
         <div className="lg:col-span-7">
           <form onSubmit={handleSave} className="space-y-6">
@@ -785,13 +947,20 @@ export const ProfilePage: React.FC = () => {
               <Link to="/dashboard" className="text-xs font-semibold text-[#5A5A7A] hover:text-[#0A2A5E]">
                 ← Back to Dashboard
               </Link>
-              <button
-                type="submit"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 min-h-[44px]"
-              >
-                <Save className="w-4 h-4" />
-                <span>Save Profile Changes</span>
-              </button>
+              {!hasSubmitted ? (
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 min-h-[44px]"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save Profile Changes</span>
+                </button>
+              ) : (
+                <div className="px-4 py-2.5 rounded-xl bg-gray-100 border border-gray-300 text-gray-500 text-xs font-bold flex items-center gap-2">
+                  <Lock className="w-3.5 h-3.5 text-gray-500" />
+                  <span>Editing Locked Post-Submission</span>
+                </div>
+              )}
             </div>
           </form>
         </div>
@@ -913,6 +1082,7 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

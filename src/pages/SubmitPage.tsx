@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { loadPassport, savePassport, getAuthUser, type Passport, type Abstract } from '../utils/storage';
 import { uploadPPTFile, saveProjectSubmission, getUserSubmissions, type FirestoreSubmission } from '../lib/db';
 import { tracks } from '../data/tracks';
@@ -41,13 +41,14 @@ export const SubmitPage: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [showWarning, setShowWarning] = useState<boolean>(false);
   const [existingSubmission, setExistingSubmission] = useState<(FirestoreSubmission & { id: string }) | null>(null);
   const [firestoreLoading, setFirestoreLoading] = useState(false);
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
-  const isUG = passport.category === 'UG';
+  const navigate = useNavigate();
+  const category = (passport.category || user?.degree || '').toUpperCase();
+  const isUG = category.includes('UG') || category.includes('UNDERGRADUATE') || category === 'DIPLOMA';
 
   useEffect(() => {
     const loaded = loadPassport();
@@ -393,11 +394,8 @@ export const SubmitPage: React.FC = () => {
       savePassport(updatedPassport);
       setPassport(updatedPassport);
 
-      setSuccessMessage(`PPT Presentation "${title}" successfully recorded under Reference ${newAbstract.id}!`);
-      setTitle('');
-      setSummary('');
-      setFile(null);
-      window.scrollTo({ top: 100, behavior: 'smooth' });
+      // 5. Redirect to dashboard with success toast
+      navigate('/dashboard', { state: { submissionSuccess: true } });
     } catch (err) {
       console.error('Submission error:', err);
       setFirestoreError('Upload failed. Please check your connection and try again.');
@@ -431,27 +429,6 @@ export const SubmitPage: React.FC = () => {
           Upload your extended abstract articulating your research challenge, methodology, and innovation.
         </p>
       </div>
-
-      {/* Success Alert */}
-      {successMessage && (
-        <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-green-50 border-2 border-green-500 text-green-900 flex flex-col sm:flex-row items-start justify-between gap-4 shadow-md">
-          <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-6 h-6 text-green-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-base font-bold">{successMessage}</p>
-              <p className="text-sm text-green-700 mt-1">
-                Our editorial review committee has acknowledged receipt. You can track status in your Dashboard.
-              </p>
-            </div>
-          </div>
-          <Link
-            to="/dashboard"
-            className="text-sm font-bold text-white bg-green-700 hover:bg-green-800 px-4 py-2.5 rounded-xl shrink-0 inline-flex items-center justify-center shadow-sm"
-          >
-            Go to Dashboard →
-          </Link>
-        </div>
-      )}
 
       {/* Single PPT Limit Notice */}
       {passport.abstracts && passport.abstracts.length >= 1 && (
@@ -685,86 +662,88 @@ export const SubmitPage: React.FC = () => {
           </p>
         </div>
 
-        {/* PPT File Dropzone */}
-        <div>
-          <label className="block text-sm font-extrabold uppercase tracking-wider text-[#0A2A5E] mb-2">
-            Attach Presentation File {isUG && <span className="text-red-500">* (Mandatory for UG)</span>}
-          </label>
+        {/* PPT File Dropzone — UG/Diploma only */}
+        {isUG && (
+          <div>
+            <label className="block text-sm font-extrabold uppercase tracking-wider text-[#0A2A5E] mb-2">
+              Attach Presentation File <span className="text-red-500">* (Mandatory for UG)</span>
+            </label>
 
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center transition-all cursor-pointer relative bg-white ${
-              validationErrors.file
-                ? 'border-red-500 bg-red-50/20 ring-2 ring-red-400'
-                : isDragging
-                ? 'border-[#FF6B00] bg-[#FF6B00]/5 scale-[1.01]'
-                : file
-                ? 'border-[#138808] bg-green-50/30'
-                : 'border-[#C8B89A] hover:border-[#0A2A5E]'
-            }`}
-            onClick={() => document.getElementById('abstract-file-input')?.click()}
-          >
-            <input
-              id="abstract-file-input"
-              type="file"
-              accept=".ppt,.pptx,.pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/pdf"
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  handleFileChange(e.target.files[0]);
-                  if (validationErrors.file) {
-                    setValidationErrors((prev) => {
-                      const copy = { ...prev };
-                      delete copy.file;
-                      return copy;
-                    });
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center transition-all cursor-pointer relative bg-white ${
+                validationErrors.file
+                  ? 'border-red-500 bg-red-50/20 ring-2 ring-red-400'
+                  : isDragging
+                  ? 'border-[#FF6B00] bg-[#FF6B00]/5 scale-[1.01]'
+                  : file
+                  ? 'border-[#138808] bg-green-50/30'
+                  : 'border-[#C8B89A] hover:border-[#0A2A5E]'
+              }`}
+              onClick={() => document.getElementById('abstract-file-input')?.click()}
+            >
+              <input
+                id="abstract-file-input"
+                type="file"
+                accept=".ppt,.pptx,.pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    handleFileChange(e.target.files[0]);
+                    if (validationErrors.file) {
+                      setValidationErrors((prev) => {
+                        const copy = { ...prev };
+                        delete copy.file;
+                        return copy;
+                      });
+                    }
                   }
-                }
-              }}
-            />
+                }}
+              />
 
-            {file ? (
-              <div className="flex flex-col items-center justify-center">
-                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center text-green-700 mb-3">
-                  <CheckCircle2 className="w-7 h-7" />
+              {file ? (
+                <div className="flex flex-col items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center text-green-700 mb-3">
+                    <CheckCircle2 className="w-7 h-7" />
+                  </div>
+                  <h4 className="font-bold text-base text-[#0A2A5E]">{file.name}</h4>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 font-mono">
+                    {(file.size / 1024).toFixed(1)} KB • Presentation Attached
+                  </p>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFile(null);
+                    }}
+                    className="mt-3 text-xs sm:text-sm text-red-600 hover:underline font-bold"
+                  >
+                    Remove or Choose Another File
+                  </button>
                 </div>
-                <h4 className="font-bold text-base text-[#0A2A5E]">{file.name}</h4>
-                <p className="text-xs sm:text-sm text-gray-500 mt-1 font-mono">
-                  {(file.size / 1024).toFixed(1)} KB • Presentation Attached
-                </p>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setFile(null);
-                  }}
-                  className="mt-3 text-xs sm:text-sm text-red-600 hover:underline font-bold"
-                >
-                  Remove or Choose Another File
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center">
-                <div className="w-14 h-14 rounded-full bg-[#FAF6EE] border border-[#C8B89A] flex items-center justify-center text-[#0A2A5E] mb-3">
-                  <Upload className="w-7 h-7" />
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-[#FAF6EE] border border-[#C8B89A] flex items-center justify-center text-[#0A2A5E] mb-3">
+                    <Upload className="w-7 h-7" />
+                  </div>
+                  <p className="text-base font-bold text-[#0A2A5E]">
+                    Drag &amp; Drop your presentation here, or <span className="text-[#FF6B00] underline">browse</span>
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">
+                    Attach your presentation (.ppt, .pptx, or .pdf) • Maximum file size 25 MB
+                  </p>
                 </div>
-                <p className="text-base font-bold text-[#0A2A5E]">
-                  Drag & Drop your presentation here, or <span className="text-[#FF6B00] underline">browse</span>
-                </p>
-                <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">
-                  Attach your presentation (.ppt, .pptx, or .pdf) • Maximum file size 25 MB
-                </p>
-              </div>
+              )}
+            </div>
+
+            {validationErrors.file && (
+              <p className="text-xs sm:text-sm text-red-600 mt-2 font-bold">{validationErrors.file}</p>
             )}
+            {fileError && <p className="text-xs sm:text-sm text-red-600 mt-2 font-bold">{fileError}</p>}
           </div>
-
-          {validationErrors.file && (
-            <p className="text-xs sm:text-sm text-red-600 mt-2 font-bold">{validationErrors.file}</p>
-          )}
-          {fileError && <p className="text-xs sm:text-sm text-red-600 mt-2 font-bold">{fileError}</p>}
-        </div>
+        )}
 
         {/* Formatting Guideline Callout */}
         <div className="p-5 rounded-2xl bg-[#FAF6EE] border border-[#C8B89A] flex items-start gap-3.5 text-xs sm:text-sm text-[#5A5A7A]">
@@ -773,8 +752,10 @@ export const SubmitPage: React.FC = () => {
             <strong className="text-[#0A2A5E] block font-bold text-sm sm:text-base">Submission Requirements:</strong>
             <ul className="list-disc list-inside mt-1 space-y-1 text-xs sm:text-sm font-medium">
               <li><strong>Word Count:</strong> Abstract must be between 150 and 250 words.</li>
-              <li><strong>Submission Rule:</strong> PPT presentation is required for UG candidates. PG/PPG candidates submit abstract directly.</li>
-              <li>Supported file formats: PPT, PPTX, or PDF presentation (maximum 25 MB).</li>
+              {isUG
+                ? <li><strong>UG / Diploma:</strong> PPT/PDF presentation is mandatory alongside the abstract.</li>
+                : <li><strong>PG / PPG:</strong> Submit your extended abstract directly — no presentation file required.</li>}
+              {isUG && <li>Supported file formats: PPT, PPTX, or PDF presentation (maximum 25 MB).</li>}
             </ul>
           </div>
         </div>
@@ -845,8 +826,8 @@ export const SubmitPage: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-bold text-gray-500">{abs.id}</span>
-                    <span className="text-xs font-bold px-2.5 py-0.5 rounded bg-amber-100 text-amber-800">
-                      Under Review
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
+                      Under Evaluation
                     </span>
                   </div>
                   <h4 className="font-bold text-base sm:text-lg text-[#0A2A5E] mt-1">{abs.title}</h4>

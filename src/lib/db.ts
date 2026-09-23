@@ -71,7 +71,7 @@ export interface FirestoreSubmission {
   userAgent: string;
   ip: string;
   // Read-only fields written by other portals:
-  paymentStatus: "NOT_PAID" | "PAID" | "FAILED";
+  paymentStatus: "NOT_PAID" | "UNDER_REVIEW" | "PAID" | "FAILED";
   evaluationStatus: "PENDING" | "SELECTED" | "REJECTED";
   evaluatedBy: string;
   evaluatedAt: string;
@@ -79,6 +79,8 @@ export interface FirestoreSubmission {
   paymentVerifiedBy: string;
   paymentVerifiedAt: string;
   paymentTransactionId: string;
+  paymentScreenshotUrl?: string;
+  paymentSubmittedAt?: string;
 }
 
 // ─── User Helpers ─────────────────────────────────────────────────────────────
@@ -114,8 +116,10 @@ export async function isEmailRegisteredInFirestore(
   }
 }
 
+export const REGISTRATION_WELCOME_WEBHOOK_URL = "https://your-n8n-instance.cloud/webhook/your-registration-webhook-id";
+
 /**
- * Save user registration to Firestore.
+ * Save user registration to Firestore and trigger n8n Welcome Email Webhook.
  * Writes:
  *   - users/{uid}  (leader document)
  *   - users/{uid}/teamMembers/{auto-id}  (one doc per team member, excluding leader)
@@ -167,6 +171,44 @@ export async function saveUserRegistration(
       ...member,
       teamLeaderId: uid,
     });
+  }
+
+  // Trigger n8n Registration Welcome Email Webhook
+  try {
+    const payload = {
+      uid,
+      name: data.name,
+      email: data.email,
+      phoneNumber: data.phoneNumber,
+      college: data.college,
+      branch: data.branch,
+      degree: data.degree,
+      year: data.year,
+      teamName: data.teamName,
+      memberEmails: data.memberEmails,
+      teamMembers: data.teamMembers,
+      registrationDateTime: now,
+    };
+
+    fetch(REGISTRATION_WELCOME_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }).catch((err) => {
+      console.warn("Standard fetch to registration webhook failed, attempting no-cors fallback:", err);
+      fetch(REGISTRATION_WELCOME_WEBHOOK_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }).catch((e) => console.error("Registration webhook error:", e));
+    });
+  } catch (err) {
+    console.error("Failed to trigger registration n8n webhook:", err);
   }
 }
 
@@ -309,6 +351,40 @@ export async function saveProjectSubmission(
   }
 
   return docRef.id;
+}
+
+/**
+ * Submit payment proof: upload screenshot and store transaction ID.
+ * Written to: users/{uid}/projectSubmissions/{submissionId}
+ * Storage path: payment-proofs/{uid}/{submissionId}/{filename}
+ */
+export async function submitPaymentProof(
+  uid: string,
+  submissionId: string,
+  transactionId: string,
+  screenshotFile: File
+): Promise<void> {
+  // 1. Upload screenshot to Firebase Storage
+  const filename = `${Date.now()}_${screenshotFile.name}`;
+  const storageRef = ref(storage, `payment-proofs/${uid}/${submissionId}/${filename}`);
+
+  let screenshotUrl = "";
+  try {
+    const snapshot = await uploadBytes(storageRef, screenshotFile);
+    screenshotUrl = await getDownloadURL(snapshot.ref);
+  } catch (err) {
+    console.warn("Payment screenshot upload failed:", err);
+    screenshotUrl = `uploaded:${screenshotFile.name}`;
+  }
+
+  // 2. Update Firestore submission document
+  const submissionRef = doc(db, "users", uid, "projectSubmissions", submissionId);
+  await updateDoc(submissionRef, {
+    paymentTransactionId: transactionId.trim(),
+    paymentScreenshotUrl: screenshotUrl,
+    paymentStatus: "UNDER_REVIEW",
+    paymentSubmittedAt: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
+  });
 }
 
 /** Fetch all submissions for a user */

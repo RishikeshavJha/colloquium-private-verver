@@ -7,6 +7,7 @@ import ProfilePage from './pages/ProfilePage';
 import GuidelinesPage from './pages/GuidelinesPage';
 import CommunityPage from './pages/CommunityPage';
 import LoginPage from './pages/LoginPage';
+import PaymentPage from './pages/PaymentPage';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/guidelines" element={<GuidelinesPage />} />
           <Route path="/community" element={<CommunityPage />} />
+          <Route path="/payment" element={<PaymentPage />} />
         </Route>
 
         {/* Fallback */}
