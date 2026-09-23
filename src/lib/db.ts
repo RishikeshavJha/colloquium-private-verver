@@ -13,6 +13,7 @@ import {
   setDoc,
   addDoc,
   updateDoc,
+  deleteDoc,
   collection,
   query,
   where,
@@ -118,6 +119,17 @@ export async function isEmailRegisteredInFirestore(
   }
 }
 
+/** Fetch all team members for a leader from the teamMembers subcollection */
+export async function getTeamMembers(uid: string): Promise<FirestoreTeamMember[]> {
+  try {
+    const snap = await getDocs(collection(db, "users", uid, "teamMembers"));
+    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<FirestoreTeamMember, 'id'>) }));
+  } catch (err) {
+    console.error("getTeamMembers error:", err);
+    return [];
+  }
+}
+
 export const REGISTRATION_WELCOME_WEBHOOK_URL = "https://your-n8n-instance.cloud/webhook/your-registration-webhook-id";
 
 /**
@@ -125,6 +137,9 @@ export const REGISTRATION_WELCOME_WEBHOOK_URL = "https://your-n8n-instance.cloud
  * Writes:
  *   - users/{uid}  (leader document)
  *   - users/{uid}/teamMembers/{auto-id}  (one doc per team member, excluding leader)
+ *
+ * This function is IDEMPOTENT: it deletes existing teamMember docs before re-adding,
+ * so calling it multiple times never duplicates members.
  */
 export async function saveUserRegistration(
   uid: string,
@@ -166,8 +181,17 @@ export async function saveUserRegistration(
 
   await setDoc(doc(db, "users", uid), leaderDoc);
 
-  // Team members subcollection
+  // ── Idempotent team member write: delete existing docs first, then add fresh ones ──
   const membersRef = collection(db, "users", uid, "teamMembers");
+
+  // Delete all existing member docs to avoid duplicates
+  const existingSnap = await getDocs(membersRef);
+  const deletePromises = existingSnap.docs.map((d) =>
+    deleteDoc(doc(db, "users", uid, "teamMembers", d.id))
+  );
+  await Promise.all(deletePromises);
+
+  // Add fresh member docs
   for (const member of data.teamMembers) {
     await addDoc(membersRef, {
       ...member,

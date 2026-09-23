@@ -13,7 +13,7 @@ import {
   type Person,
   type AuthUser,
 } from '../utils/storage';
-import { saveUserRegistration, getUserDoc, type FirestoreTeamMember } from '../lib/db';
+import { saveUserRegistration, getUserDoc, getTeamMembers, type FirestoreTeamMember } from '../lib/db';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
 import CommunityQR from '../components/CommunityQR';
@@ -137,20 +137,36 @@ export const RegisterPage: React.FC = () => {
 
     if (isAlreadyRegistered) {
       if (existingDoc) {
+        // Fetch team members from subcollection
+        const teamMemberDocs = await getTeamMembers(user.id);
+
+        const leaderPerson = {
+          name: existingDoc.name || user.name,
+          email: existingDoc.email || user.email,
+          mobile: existingDoc.phoneNumber || '',
+          institution: existingDoc.college || '',
+          department: existingDoc.branch || '',
+          year: existingDoc.year || '',
+          github: existingDoc.githubProfileUrl || '',
+          linkedin: existingDoc.linkedinProfileUrl || '',
+        };
+
+        const memberPeople = teamMemberDocs.map((m) => ({
+          name: m.name || '',
+          email: m.email || '',
+          mobile: m.phoneNumber || '',
+          institution: m.college || '',
+          department: m.branch || '',
+          year: m.year || '',
+          github: '',
+          linkedin: m.linkedinProfileUrl || '',
+        }));
+
         const restoredPassport: Passport = {
           category: existingDoc.degree || 'UG',
           track: '',
           team: existingDoc.teamName || '',
-          people: [{
-            name: existingDoc.name || user.name,
-            email: existingDoc.email || user.email,
-            mobile: existingDoc.phoneNumber || '',
-            institution: existingDoc.college || '',
-            department: existingDoc.branch || '',
-            year: existingDoc.year || '',
-            github: existingDoc.githubProfileUrl || '',
-            linkedin: existingDoc.linkedinProfileUrl || '',
-          }],
+          people: [leaderPerson, ...memberPeople],
           registered: true,
           abstracts: [],
         };
@@ -181,22 +197,39 @@ export const RegisterPage: React.FC = () => {
 
     if (currentUser?.id) {
       setHasEntered(true);
-      getUserDoc(currentUser.id).then((docData) => {
+      // Fetch both the leader doc AND the teamMembers subcollection
+      Promise.all([
+        getUserDoc(currentUser.id),
+        getTeamMembers(currentUser.id),
+      ]).then(([docData, teamMemberDocs]) => {
         if (docData) {
+          const leaderPerson = {
+            name: docData.name || currentUser.name,
+            email: docData.email || currentUser.email,
+            mobile: docData.phoneNumber || '',
+            institution: docData.college || '',
+            department: docData.branch || '',
+            year: docData.year || '',
+            github: docData.githubProfileUrl || '',
+            linkedin: docData.linkedinProfileUrl || '',
+          };
+
+          const memberPeople = teamMemberDocs.map((m) => ({
+            name: m.name || '',
+            email: m.email || '',
+            mobile: m.phoneNumber || '',
+            institution: m.college || '',
+            department: m.branch || '',
+            year: m.year || '',
+            github: '',
+            linkedin: m.linkedinProfileUrl || '',
+          }));
+
           const restoredPassport: Passport = {
             category: docData.degree || 'UG',
             track: saved.track || '',
             team: docData.teamName || saved.team || '',
-            people: [{
-              name: docData.name || currentUser.name,
-              email: docData.email || currentUser.email,
-              mobile: docData.phoneNumber || '',
-              institution: docData.college || '',
-              department: docData.branch || '',
-              year: docData.year || '',
-              github: docData.githubProfileUrl || '',
-              linkedin: docData.linkedinProfileUrl || '',
-            }],
+            people: [leaderPerson, ...memberPeople],
             registered: true,
             abstracts: saved.abstracts || [],
           };
@@ -354,10 +387,12 @@ export const RegisterPage: React.FC = () => {
     });
   };
 
-  // Auto-ensure at least 2 team members for UG category so Member #2 form is shown by default
+  // Auto-ensure at least 2 team members for UG category so Member #2 form is shown by default.
+  // IMPORTANT: Only depend on data.category — NOT on data.people.length, otherwise this runs
+  // every time a member is added/removed, causing an infinite loop of adding empty members.
   useEffect(() => {
     if (data.category === 'UG' && data.people.length < 2) {
-      handleUpdate((prev) => {
+      setData((prev) => {
         if (prev.category === 'UG' && prev.people.length < 2) {
           const leader = prev.people[0] || emptyPerson();
           const member2 = {
@@ -366,15 +401,15 @@ export const RegisterPage: React.FC = () => {
             department: leader.department || '',
             year: leader.year || '',
           };
-          return {
-            ...prev,
-            people: [leader, member2],
-          };
+          const next = { ...prev, people: [leader, member2] };
+          savePassport(next);
+          return next;
         }
         return prev;
       });
     }
-  }, [step, data.category, data.people.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.category]);
 
   // Ensure smooth scroll to top when changing steps
   useEffect(() => {
@@ -589,36 +624,45 @@ export const RegisterPage: React.FC = () => {
 
   const leader = data.people[0] || emptyPerson();
 
-  // ================= ENTRANCE SCREEN (COLLAGE CREATES REGISTRATION SPACE - RESPONSIVE FIT) =================
+  // ================= ENTRANCE SCREEN (COLLAGE CREATES REGISTRATION SPACE - NO CARD) =================
   if (!hasEntered) {
     return (
-      <div className="w-full flex-1 flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 py-8 sm:py-12 select-none relative z-10 min-h-[calc(100vh-120px)]">
+      <div className="w-full flex-1 flex flex-col items-center justify-center px-4 py-6 sm:py-8 select-none relative z-10 -mt-2 -mb-20 min-h-[calc(100vh-100px)]">
         {/* 1. Base Collage Artwork Background */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
           style={{ backgroundImage: "url('/inspire-collage-bg.jpg')" }}
         />
 
-        {/* Overlay backdrop mask for visual contrast */}
-        <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px] z-0" />
+        {/* 2. Solid square card - no glow, no blur */}
+        <div
+          className="absolute z-0 pointer-events-none"
+          style={{
+            width: 'min(82vw, 560px)',
+            height: 'min(74vh, 470px)',
+            backgroundColor: '#FAF2E5',
+            borderRadius: '8px',
+            border: '1.5px solid rgba(200,184,154,0.5)',
+          }}
+        />
 
-        {/* 2. Responsive, dynamic fit card */}
-        <div className="w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl relative z-10 mx-auto my-auto text-center px-6 py-8 sm:px-10 sm:py-12 md:px-14 md:py-14 rounded-3xl border-2 border-[#C8B89A] bg-[#FAF2E5]/95 shadow-2xl backdrop-blur-md transition-all">
+        {/* 3. LOCKED REGISTRATION CONTENT (Sitting directly inside the open space, ZERO CARD) */}
+        <div className="w-full max-w-xl sm:max-w-2xl relative z-10 mx-auto my-auto text-center px-4 py-2">
           {/* Institutional Logos */}
-          <div className="flex items-center justify-center gap-3 sm:gap-4 mb-3 sm:mb-4">
-            <img src="/slrtce-logo.png" alt="SLRTCE" className="h-7 sm:h-9 md:h-11 w-auto object-contain" />
-            <div className="h-6 sm:h-8 w-px bg-[#C8B89A]" />
-            <img src="/ieee-slrtce-logo.png" alt="IEEE SLRTCE" className="h-7 sm:h-9 md:h-11 w-auto object-contain" />
+          <div className="flex items-center justify-center gap-2.5 mb-1 sm:mb-1.5">
+            <img src="/slrtce-logo.png" alt="SLRTCE" className="h-6 sm:h-7 w-auto object-contain" />
+            <div className="h-5 w-px bg-[#C8B89A]" />
+            <img src="/ieee-slrtce-logo.png" alt="IEEE SLRTCE" className="h-6 sm:h-7 w-auto object-contain" />
           </div>
 
           {/* Pill Tag */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-[11px] sm:text-xs md:text-sm font-extrabold tracking-widest text-[#0A2A5E] uppercase mb-4 sm:mb-6 shadow-xs">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-[10px] sm:text-[11px] font-bold tracking-widest text-[#0A2A5E] uppercase mb-3 sm:mb-4">
             REGISTRATION · 2026
           </div>
 
-          {/* INSPIRE Colloquium Logo Badge */}
-          <div className="flex items-center justify-center mb-4 sm:mb-6">
-            <div className="w-48 sm:w-60 md:w-72 h-20 sm:h-28 md:h-32 rounded-2xl bg-[#000688] border-2 border-dashed border-[#C8B89A] p-3 shadow-lg flex items-center justify-center hover:scale-105 transition-transform duration-300 overflow-hidden">
+          {/* INSPIRE Colloquium Logo */}
+          <div className="flex items-center justify-center mb-3 sm:mb-4">
+            <div className="w-44 sm:w-52 h-20 sm:h-24 rounded-2xl bg-[#000688] border-2 border-dashed border-[#C8B89A] p-2 shadow-md flex items-center justify-center hover:scale-105 transition-transform duration-300 overflow-hidden">
               <img
                 src="/inspire-colloquium-logo.png"
                 alt="INSPIRE Colloquium"
@@ -628,35 +672,35 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           {/* Title & Slogan */}
-          <h2 className="font-display text-xl sm:text-3xl md:text-4xl font-extrabold text-[#0A2A5E] leading-tight tracking-tight max-w-2xl mx-auto">
+          <h2 className="font-display text-xl sm:text-2xl font-extrabold text-[#0A2A5E] leading-tight tracking-tight">
             Sign in with your Google account to continue.
           </h2>
 
-          <p className="text-xs sm:text-base md:text-lg text-[#5A5A7A] mt-3 sm:mt-4 max-w-xl md:max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#5A5A7A] mt-3 max-w-lg mx-auto leading-relaxed">
             If you’re already registered, you’ll be taken directly to your Dashboard. New users will proceed with registration.
           </p>
 
           {/* Primary Action Button */}
-          <div className="mt-6 sm:mt-8 max-w-md sm:max-w-lg mx-auto space-y-3">
+          <div className="mt-5 sm:mt-6 max-w-md mx-auto space-y-2.5">
             <button
               type="button"
               onClick={handleDirectGoogleSignIn}
               disabled={entranceLoading}
-              className="w-full flex items-center justify-center gap-3 bg-[#0A2A5E] hover:bg-[#082046] text-white font-extrabold text-sm sm:text-lg py-4 sm:py-4.5 px-8 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all active:scale-[0.98] cursor-pointer group min-h-[52px] sm:min-h-[56px] disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-3 bg-[#0A2A5E] hover:bg-[#082046] text-white font-bold text-sm sm:text-base py-3.5 sm:py-3.5 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all active:scale-[0.98] cursor-pointer group min-h-[48px] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white rounded-full p-1.5 flex items-center justify-center shrink-0 shadow-sm">
-                <GoogleSvg className={`w-4 h-4 sm:w-5 sm:h-5 ${entranceLoading ? 'animate-spin' : ''}`} />
+              <div className="w-6 h-6 bg-white rounded-full p-1 flex items-center justify-center shrink-0 shadow-sm">
+                <GoogleSvg className={`w-4 h-4 ${entranceLoading ? 'animate-spin' : ''}`} />
               </div>
               <span className="tracking-wide">{entranceLoading ? 'Signing in…' : 'Continue with Google'}</span>
             </button>
           </div>
 
           {entranceError && (
-            <p className="text-xs sm:text-sm text-red-600 text-center mt-3 font-semibold bg-red-50 border border-red-200 rounded-lg px-4 py-2 max-w-md mx-auto">{entranceError}</p>
+            <p className="text-xs text-red-600 text-center mt-2 font-semibold">{entranceError}</p>
           )}
 
-          {/* Dynamic Routing Note */}
-          <p className="text-xs sm:text-sm text-center text-[#5A5A7A] mt-4 sm:mt-5 font-medium leading-relaxed">
+          {/* Concise Dynamic Routing Note */}
+          <p className="text-xs text-center text-[#5A5A7A] mt-3 font-medium leading-relaxed">
             Already registered? Go to Dashboard.<br />
             New user? Continue above to register.
           </p>

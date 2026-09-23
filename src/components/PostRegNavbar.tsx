@@ -73,8 +73,8 @@ const PostRegNavbar = () => {
   const isEntrancePage = location.pathname === '/register' || location.pathname === '/login';
 
   return (
-    <header className="w-full sticky top-0 z-50 bg-[#0A2A5E] text-white py-2.5 sm:py-2.5 transition-all duration-300">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 md:px-12 flex justify-between items-center relative">
+    <header className="w-full sticky top-0 z-50 bg-[#0A2A5E] text-white py-2 sm:py-2.5 transition-all duration-300 shrink-0">
+      <div className="max-w-[1440px] mx-auto px-3 sm:px-6 md:px-12 flex justify-between items-center relative">
         {/* Left: Branding — SLRTCE links to slrtce.in */}
         <div className="flex items-center space-x-2.5 sm:space-x-3 text-white shrink-0">
           <a

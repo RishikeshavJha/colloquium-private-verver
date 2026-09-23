@@ -10,7 +10,7 @@ const PostRegLayout = () => {
 
   return (
     <InspireBackgroundProvider>
-      <div className="min-h-screen flex flex-col bg-[#FAF6EE] font-sans selection:bg-[#FF9933]/30">
+      <div className="h-screen flex flex-col bg-[#FAF6EE] font-sans selection:bg-[#FF9933]/30 overflow-hidden">
         {/* Paper texture bg - subtle texture without washing out artwork */}
         <div
           className="fixed inset-0 pointer-events-none z-0 bg-[#FAF6EE] bg-no-repeat bg-center bg-cover opacity-25"
@@ -19,16 +19,16 @@ const PostRegLayout = () => {
 
         <PostRegNavbar />
 
-        <main className={`registration-workspace flex-grow relative z-10 flex flex-col items-center justify-start w-full overflow-x-hidden ${isAuthPage ? 'p-0 pb-0' : 'pb-4 sm:pb-6'}`}>
+        <main className={`registration-workspace flex-1 relative z-10 flex flex-col items-center justify-start w-full overflow-x-hidden overflow-y-auto ${isAuthPage ? 'p-0 pb-0' : 'pb-4 sm:pb-6'}`}>
           {!isAuthPage && <InspireParchmentBackground />}
 
-          <div className={`relative z-10 w-full flex-grow flex flex-col items-center justify-start ${isAuthPage ? 'h-full' : ''}`}>
+          <div className={`relative z-10 w-full flex-1 flex flex-col items-center justify-start ${isAuthPage ? 'h-full min-h-full' : ''}`}>
             <Outlet />
           </div>
         </main>
 
       {/* Footer */}
-      <footer className="w-full text-white relative z-10 font-sans bg-[#0A2A5E] mt-auto overflow-hidden">
+      <footer className="w-full text-white relative z-10 font-sans bg-[#0A2A5E] mt-auto overflow-hidden shrink-0">
         {/* Torn paper edge above footer */}
         <div
           className="absolute left-0 w-full max-w-full overflow-hidden pointer-events-none z-30"
