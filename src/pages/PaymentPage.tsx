@@ -154,23 +154,20 @@ export const PaymentPage: React.FC = () => {
       // 1. Save to Firestore + upload screenshot to Storage
       const screenshotUrl = await submitPaymentProof(user.id, selectedSubmission.id, txnId, screenshot);
 
-      // 2. Fire-and-forget webhook — do NOT await so the user sees success instantly
-      fetch(N8N_WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          uid: user.id,
-          email: user.email || passport.people?.[0]?.email || '',
-          teamName: passport.team || '',
-          category: passport.category || '',
-          registrationId,
-          submissionId: selectedSubmission.id,
-          transactionId: txnId.trim(),
-          screenshotUrl,
-          track: selectedSubmission.track || '',
-          submittedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-        }),
-      }).catch((e) => console.warn('n8n webhook (non-fatal):', e));
+      // 2. Fire-and-forget webhook — FormData + no-cors bypasses CORS preflight so n8n actually receives it
+      const wh = new FormData();
+      wh.append('uid', user.id);
+      wh.append('email', user.email || passport.people?.[0]?.email || '');
+      wh.append('teamName', passport.team || '');
+      wh.append('category', passport.category || '');
+      wh.append('registrationId', registrationId);
+      wh.append('submissionId', selectedSubmission.id);
+      wh.append('transactionId', txnId.trim());
+      wh.append('screenshotUrl', screenshotUrl);
+      wh.append('track', selectedSubmission.track || '');
+      wh.append('submittedAt', new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
+      fetch(N8N_WEBHOOK, { method: 'POST', mode: 'no-cors', body: wh })
+        .catch((e) => console.warn('n8n webhook (non-fatal):', e));
 
       setSubmitted(true);
     } catch (err) {
