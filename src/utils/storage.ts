@@ -56,7 +56,7 @@ export function savePassport(data: Passport): void {
     const isIndividual = data.category && data.category !== 'UG';
     const sanitized: Passport = {
       ...data,
-      team: isIndividual ? '' : data.team,
+      team: data.team || '',
       people: isIndividual ? [data.people[0] || emptyPerson()] : data.people,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
@@ -77,7 +77,7 @@ export function loadPassport(): Passport {
     return {
       ...blankPassport(),
       ...parsed,
-      team: isIndividual ? '' : (parsed.team || ''),
+      team: parsed.team || '',
       people: isIndividual ? [rawPeople[0] || emptyPerson()] : rawPeople,
       abstracts: Array.isArray(parsed.abstracts) ? parsed.abstracts : [],
     };
