@@ -393,8 +393,8 @@ export const RegisterPage: React.FC = () => {
     if (step === 2) {
       const leader = data.people[0] || emptyPerson();
       const errs = validatePerson(leader);
-      if (data.category === 'UG' && !data.team.trim()) {
-        errs.team = 'Team name is required for UG / Diploma participation.';
+      if (!data.team.trim()) {
+        errs.team = 'Team name is required.';
       }
       const cleanEmail = leader.email.trim().toLowerCase();
       if (!data.registered && cleanEmail && isEmailRegistered(cleanEmail)) {
@@ -487,7 +487,6 @@ export const RegisterPage: React.FC = () => {
       if (data.category !== 'UG') {
         handleUpdate((prev) => ({
           ...prev,
-          team: '',
           people: [prev.people[0] || emptyPerson()],
         }));
       } else if (step === 2 && data.people.length < 2) {
@@ -508,7 +507,7 @@ export const RegisterPage: React.FC = () => {
 
       if (step === 3) {
         const finalPeople = data.category === 'UG' ? data.people : [data.people[0] || emptyPerson()];
-        const finalTeam = data.category === 'UG' ? data.team : '';
+        const finalTeam = data.team;
         handleUpdate((prev) => ({
           ...prev,
           registered: true,
@@ -1313,26 +1312,24 @@ export const RegisterPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-              {/* Team Name for UG */}
-              {data.category === 'UG' && (
-                <div>
-                  <label className="block text-xs font-bold text-[#061838] mb-1.5 flex items-center gap-1.5">
-                    <Users className="w-4 h-4 text-[#FF6B00]" />
-                    <span>Team Name <span className="text-red-500">*</span></span>
-                  </label>
-                  <input
-                    type="text"
-                    value={data.team}
-                    onChange={(e) => handleUpdate((prev) => ({ ...prev, team: e.target.value }))}
-                    placeholder="Enter team name (e.g. Innovators)"
-                    className="w-full px-4 py-3 rounded-xl border border-[#C8B89A]/80 bg-[#FFFDF9]/95 text-base sm:text-sm text-[#061838] font-medium focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] min-h-[46px] shadow-2xs"
-                  />
-                  {errors.team && <p className="text-xs text-red-600 mt-1 font-medium">{errors.team}</p>}
-                </div>
-              )}
+              {/* Team Name */}
+              <div>
+                <label className="block text-xs font-bold text-[#061838] mb-1.5 flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-[#FF6B00]" />
+                  <span>Team Name <span className="text-red-500">*</span></span>
+                </label>
+                <input
+                  type="text"
+                  value={data.team}
+                  onChange={(e) => handleUpdate((prev) => ({ ...prev, team: e.target.value }))}
+                  placeholder="Enter team name (e.g. Innovators)"
+                  className="w-full px-4 py-3 rounded-xl border border-[#C8B89A]/80 bg-[#FFFDF9]/95 text-base sm:text-sm text-[#061838] font-medium focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] min-h-[46px] shadow-2xs"
+                />
+                {errors.team && <p className="text-xs text-red-600 mt-1 font-medium">{errors.team}</p>}
+              </div>
 
               {/* Full Name */}
-              <div className={data.category !== 'UG' ? 'md:col-span-2' : ''}>
+              <div>
                 <label className="block text-xs font-bold text-[#061838] mb-1.5 flex items-center justify-between">
                   <span>Full Name (as on certificate) <span className="text-red-500">*</span></span>
                   <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
@@ -1792,7 +1789,7 @@ export const RegisterPage: React.FC = () => {
                   <span className="font-bold text-[#0A2A5E]">{leader.institution || 'SLRTCE, Mumbai'}</span>
                 </div>
 
-                {data.category === 'UG' && data.team && (
+                {data.team && (
                   <div>
                     <span className="text-[10px] uppercase font-bold text-gray-400 block">Team Name</span>
                     <span className="font-bold text-[#0A2A5E]">{data.team}</span>

@@ -303,7 +303,7 @@ export const ProfilePage: React.FC = () => {
             <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">College / Institute</div>
             <div className="font-semibold text-[12px] text-white/85 mt-0.5 leading-snug">{person.institution || leader.institution || 'Affiliated Institution'}</div>
           </div>
-          {passport.category === 'UG' && passport.team && (
+          {passport.team && (
             <div className="col-span-2">
               <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Team Name</div>
               <div className="font-black text-sm text-amber-300 mt-0.5">{passport.team}</div>
@@ -481,7 +481,7 @@ export const ProfilePage: React.FC = () => {
                   </div>
                 </div>
 
-                {passport.category === 'UG' && passport.team && (
+                {passport.team && (
                   <div>
                     <label className="block text-[11px] font-bold uppercase text-[#0A2A5E] mb-1">
                       Team Name (Fixed)
@@ -886,7 +886,7 @@ export const ProfilePage: React.FC = () => {
                   <span className="text-[10px] text-gray-500 block">{leader.department}</span>
                 </div>
 
-                {passport.category === 'UG' && passport.team && (
+                {passport.team && (
                   <div>
                     <span className="text-[9px] uppercase font-bold text-gray-400 block">Team Name</span>
                     <span className="font-bold text-xs text-[#0A2A5E]">{passport.team}</span>

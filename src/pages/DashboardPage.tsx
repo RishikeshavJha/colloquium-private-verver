@@ -1281,7 +1281,7 @@ export const DashboardPage: React.FC = () => {
                 <span className="text-[10px] text-gray-400 uppercase font-bold block">College / Institute</span>
                 <span className="font-bold text-[#0A2A5E]">{leader.institution || 'SLRTCE'}</span>
               </div>
-              {passport.category === 'UG' && passport.team && (
+              {passport.team && (
                 <div>
                   <span className="text-[10px] text-gray-400 uppercase font-bold block">Team Name</span>
                   <span className="font-bold text-[#0A2A5E]">{passport.team}</span>
