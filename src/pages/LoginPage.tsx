@@ -1,7 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import GoogleAuthCard from '../components/GoogleAuthModal';
-import { ArrowLeft } from 'lucide-react';
 import { useInspireBackground } from '../context/InspireBackgroundContext';
 
 export const LoginPage: React.FC = () => {
