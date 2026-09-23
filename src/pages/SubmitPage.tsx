@@ -826,8 +826,8 @@ export const SubmitPage: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-bold text-gray-500">{abs.id}</span>
-                    <span className="text-xs font-bold px-2.5 py-0.5 rounded bg-amber-100 text-amber-800">
-                      Under Review
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
+                      Under Evaluation
                     </span>
                   </div>
                   <h4 className="font-bold text-base sm:text-lg text-[#0A2A5E] mt-1">{abs.title}</h4>

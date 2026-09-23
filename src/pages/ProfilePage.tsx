@@ -351,7 +351,7 @@ export const ProfilePage: React.FC = () => {
             <Lock className="w-5 h-5 text-amber-700 shrink-0" />
             <div>
               <span className="text-xs font-bold text-amber-900 block uppercase tracking-wide">Submission Received · Profile Locked</span>
-              <span className="text-[11px] text-amber-800 font-medium">Your abstract/ppt has been submitted and is under review. Profile editing is disabled.</span>
+              <span className="text-[11px] text-amber-800 font-medium">Your abstract/ppt has been submitted and is under evaluation. Profile editing is disabled.</span>
             </div>
           </div>
           <Link

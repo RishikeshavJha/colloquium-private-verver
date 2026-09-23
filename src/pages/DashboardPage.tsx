@@ -163,6 +163,10 @@ export const DashboardPage: React.FC = () => {
   );
   const hasAbstracts = hasSubmitted;
 
+  const selectedSubmission = firestoreSubmissions.find(s => s.evaluationStatus === 'SELECTED');
+  const isSelected = Boolean(selectedSubmission);
+  const isRejected = !isSelected && firestoreSubmissions.length > 0 && firestoreSubmissions.every(s => s.evaluationStatus === 'REJECTED');
+
   // Helper to validate whether a URL points to an actual uploaded file
   const isValidSubmissionFileUrl = (url?: string | null): boolean => {
     if (!url) return false;
@@ -470,16 +474,32 @@ export const DashboardPage: React.FC = () => {
         {/* Card 3: Abstract Status */}
         <div className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-xl p-4 sm:p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Abstract Review</span>
-            <Clock className="w-3.5 h-3.5 text-[#FF6B00]" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Evaluation Status</span>
+            {isSelected ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            ) : isRejected ? (
+              <AlertCircle className="w-4 h-4 text-rose-600" />
+            ) : (
+              <Clock className="w-3.5 h-3.5 text-[#FF6B00]" />
+            )}
           </div>
           <div>
             <h4 className="font-bold text-sm text-[#0A2A5E]">
-              {hasSubmitted ? 'Under Peer Review' : 'Pending Submission'}
+              {isSelected
+                ? 'Selected for Presentation'
+                : isRejected
+                ? 'Not Shortlisted'
+                : hasSubmitted
+                ? 'Under Evaluation'
+                : 'Pending Submission'}
             </h4>
             <span className="text-xs text-[#5A5A7A] mt-1 block">
-              {hasSubmitted
-                ? `1 submission under editorial check`
+              {isSelected
+                ? 'Shortlisted for Colloquium Presentation!'
+                : isRejected
+                ? 'Evaluation completed by panel'
+                : hasSubmitted
+                ? 'Submission under committee evaluation'
                 : 'Upload abstract before deadline'}
             </span>
           </div>
@@ -553,7 +573,15 @@ export const DashboardPage: React.FC = () => {
                   Your INSPIRE Colloquium 2026 Journey
                 </h3>
               </div>
-              {hasSubmitted ? (
+              {isSelected ? (
+                <span className="text-xs font-bold text-emerald-900 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Selected for Colloquium Presentation
+                </span>
+              ) : isRejected ? (
+                <span className="text-xs font-bold text-rose-900 bg-rose-100 border border-rose-300 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-600" /> Evaluation Complete: Not Shortlisted
+                </span>
+              ) : hasSubmitted ? (
                 <span className="text-xs font-bold text-[#FF6B00] bg-[#FF6B00]/10 border border-[#FF6B00]/30 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
                   <Sparkles className="w-3.5 h-3.5 text-[#FF6B00]" /> Stage 2 In Progress: Under Evaluation
                 </span>
@@ -621,7 +649,49 @@ export const DashboardPage: React.FC = () => {
               )}
 
               {/* Stage 2 */}
-              {hasSubmitted ? (
+              {isSelected ? (
+                <div className="p-3 sm:p-4 rounded-xl border border-emerald-300 bg-emerald-50/50 flex flex-col gap-3 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      ✓
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-[#0A2A5E]">Evaluation</h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          Evaluation Completed ✓
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#5A5A7A] mt-1">
+                        Review panel has evaluated your submission and selected your project.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-900 bg-emerald-100/80 px-3 py-2 rounded-lg border border-emerald-200">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Evaluation complete. Shortlisted for colloquium presentation!</span>
+                  </div>
+                </div>
+              ) : isRejected ? (
+                <div className="p-3 sm:p-4 rounded-xl border border-rose-300 bg-rose-50/50 flex flex-col gap-3 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      2
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-[#0A2A5E]">Evaluation</h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300">
+                          Completed · Not Shortlisted
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#5A5A7A] mt-1">
+                        Review panel has completed evaluation for this cycle.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : hasSubmitted ? (
                 <div className="p-3 sm:p-4 rounded-xl border-2 border-[#0A2A5E] bg-white shadow-md flex flex-col gap-3">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-full bg-[#0A2A5E] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
@@ -631,7 +701,7 @@ export const DashboardPage: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <h4 className="font-bold text-sm text-[#0A2A5E]">Evaluation</h4>
                         <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-bold animate-pulse">
-                          Active Now · In Review
+                          Active Now · Under Evaluation
                         </span>
                       </div>
                       <p className="text-xs text-[#5A5A7A] mt-1">
@@ -667,46 +737,121 @@ export const DashboardPage: React.FC = () => {
               )}
 
               {/* Stage 3 */}
-              <div className="p-3 sm:p-4 rounded-xl border border-[#C8B89A] bg-[#FAF6EE] flex flex-col gap-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                    3
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-sm text-[#0A2A5E]">Shortlist Results</h4>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
-                        Upcoming
-                      </span>
+              {isSelected ? (
+                <div className="p-3 sm:p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50/80 shadow-md flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      ✓
                     </div>
-                    <p className="text-xs text-[#5A5A7A] mt-1">
-                      Announcement of shortlisted teams and participants selected for presentation.
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-bold text-sm text-[#0A2A5E]">Shortlist Results</h4>
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-black tracking-wide uppercase">
+                          SELECTED FOR COLLOQUIUM PRESENTATION
+                        </span>
+                      </div>
+                      <p className="text-xs text-emerald-900 mt-1.5 font-medium leading-relaxed">
+                        🎉 Congratulations! Your project abstract/presentation has been officially shortlisted and selected for the INSPIRE Colloquium 2026 presentation round.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-emerald-200">
+                    <span className="text-xs font-bold text-emerald-800 flex items-center gap-1">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Slot Reserved
+                    </span>
+                    <Link
+                      to="/submit"
+                      className="text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg shadow-sm"
+                    >
+                      View Selection Details →
+                    </Link>
                   </div>
                 </div>
-                <span className="text-xs text-gray-400 italic">Unlocks after Evaluation</span>
-              </div>
+              ) : isRejected ? (
+                <div className="p-3 sm:p-4 rounded-xl border border-rose-200 bg-rose-50/40 flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-rose-200 text-rose-800 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      3
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-[#0A2A5E]">Shortlist Results</h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
+                          Not Shortlisted
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#5A5A7A] mt-1">
+                        Evaluation completed. Unfortunately, your project was not shortlisted for presentation in this edition.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 sm:p-4 rounded-xl border border-[#C8B89A] bg-[#FAF6EE] flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      3
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-[#0A2A5E]">Shortlist Results</h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
+                          Upcoming
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#5A5A7A] mt-1">
+                        Announcement of shortlisted teams and participants selected for presentation.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-400 italic">Unlocks after Evaluation</span>
+                </div>
+              )}
 
               {/* Stage 4 */}
-              <div className="p-3 sm:p-4 rounded-xl border border-[#C8B89A] bg-[#FAF6EE] flex flex-col gap-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                    4
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-sm text-[#0A2A5E]">Payments (Deadline)</h4>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
-                        Pending Shortlist
-                      </span>
+              {isSelected ? (
+                <div className="p-3 sm:p-4 rounded-xl border-2 border-[#0A2A5E] bg-white shadow-md flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#0A2A5E] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      4
                     </div>
-                    <p className="text-xs text-[#5A5A7A] mt-1">
-                      Shortlisted participants complete the registration fee payment before the deadline to confirm their slot.
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-[#0A2A5E]">Slot Confirmation & Verification</h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 border border-green-300">
+                          Active Now · Unlocked
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#5A5A7A] mt-1">
+                        Selected participants confirm their presentation slot and complete any registration requirements before the event.
+                      </p>
+                    </div>
                   </div>
+                  <span className="text-xs text-emerald-800 font-semibold bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+                    ✓ Unlocked for Shortlisted Participant
+                  </span>
                 </div>
-                <span className="text-xs text-gray-400 italic">Unlocks after Shortlist</span>
-              </div>
+              ) : (
+                <div className="p-3 sm:p-4 rounded-xl border border-[#C8B89A] bg-[#FAF6EE] flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      4
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-[#0A2A5E]">Payments (Deadline)</h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
+                          Pending Shortlist
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#5A5A7A] mt-1">
+                        Shortlisted participants complete the registration fee payment before the deadline to confirm their slot.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-400 italic">Unlocks after Shortlist</span>
+                </div>
+              )}
 
               {/* Stage 5 */}
               <div className="p-3 sm:p-4 rounded-xl border border-[#C8B89A] bg-[#FAF6EE] flex flex-col gap-3">
@@ -796,7 +941,7 @@ export const DashboardPage: React.FC = () => {
                               </span>
                             ) : (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
-                                In Review
+                                Under Evaluation
                               </span>
                             )}
                             {paySt === 'PAID' && (
@@ -858,9 +1003,15 @@ export const DashboardPage: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-[#0A2A5E]">{abs.title}</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                          In Review
-                        </span>
+                        {isSelected ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            ✓ Selected
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
+                            Under Evaluation
+                          </span>
+                        )}
                       </div>
                       <div className="text-xs text-[#5A5A7A] mt-1 flex flex-wrap gap-x-4 gap-y-1">
                         <span>Track: <strong className="text-[#0A2A5E]">{abs.track}</strong></span>
@@ -882,7 +1033,7 @@ export const DashboardPage: React.FC = () => {
                 <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-xs font-semibold text-[#0A2A5E]">No research abstract uploaded yet</p>
                 <p className="text-[11px] text-[#5A5A7A] mt-1 max-w-sm mx-auto">
-                  Submit your 2-page abstract to enter the peer review process.
+                  Submit your 2-page abstract to enter the evaluation process.
                 </p>
                 <Link
                   to="/submit"
