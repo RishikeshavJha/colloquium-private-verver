@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { loadPassport, savePassport, emptyPerson, validatePerson, yearOptionsFor, getAuthUser, setAuthUser, type Passport, type Person } from '../utils/storage';
-import { saveUserRegistration, updateUserProfile } from '../lib/db';
+import { saveUserRegistration } from '../lib/db';
 import { tracks } from '../data/tracks';
 import {
   Save,
@@ -80,15 +80,6 @@ export const ProfilePage: React.FC = () => {
 
   const toTitleCase = (val: string) => {
     return val.replace(/(^|\s)\S/g, (char) => char.toUpperCase());
-  };
-
-  const handleLeaderChange = (field: keyof Person, val: string) => {
-    const formatted = field === 'name' ? toTitleCase(val) : val;
-    setPassport((prev) => {
-      const leader = { ...prev.people[0], [field]: formatted };
-      const people = [leader, ...prev.people.slice(1)];
-      return { ...prev, people };
-    });
   };
 
   const handleMemberChange = (idx: number, field: keyof Person, val: string) => {

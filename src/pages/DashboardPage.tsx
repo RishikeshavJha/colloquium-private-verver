@@ -100,11 +100,16 @@ export const DashboardPage: React.FC = () => {
     const updateTimer = () => {
       const now = new Date().getTime();
       const currentPassport = loadPassport();
-      const currentHasSubmitted = Boolean(currentPassport.abstracts && currentPassport.abstracts.length > 0);
 
       let target = pptSubmissionDeadline;
-      if (currentHasSubmitted) {
+      if (currentPassport.abstracts && currentPassport.abstracts.length > 0) {
         target = evaluationDeadline;
+      }
+      if (currentPassport.category && currentPassport.abstracts && currentPassport.abstracts.length > 0) {
+        // If deadline is after evaluation, target payment deadline
+        if (now > evaluationDeadline && now < paymentDeadline) {
+          target = paymentDeadline;
+        }
       }
 
       const difference = target - now;
@@ -223,9 +228,6 @@ export const DashboardPage: React.FC = () => {
     color: '#0A2A5E',
   };
 
-  const userDegree = (_user?.degree || '').toUpperCase();
-  const rawCat = (passport.category || userDegree).toUpperCase();
-  const isUG = rawCat.includes('UG') || rawCat.includes('UNDERGRADUATE') || rawCat.includes('DIPLOMA') || passport.category === 'UG';
 
   const isRegistered = !!passport.category && (passport.registered || !!leader.name);
 
