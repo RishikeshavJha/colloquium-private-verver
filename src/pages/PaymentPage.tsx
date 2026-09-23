@@ -151,30 +151,26 @@ export const PaymentPage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
-      // 1. Save to Firestore + upload screenshot; get back the screenshot URL
+      // 1. Save to Firestore + upload screenshot to Storage
       const screenshotUrl = await submitPaymentProof(user.id, selectedSubmission.id, txnId, screenshot);
 
-      // 2. Fire n8n webhook (best-effort — don't block success on failure)
-      try {
-        const formData = new FormData();
-        formData.append('uid', user.id);
-        formData.append('email', user.email || passport.people?.[0]?.email || '');
-        formData.append('teamName', passport.team || '');
-        formData.append('category', passport.category || '');
-        formData.append('registrationId', registrationId);
-        formData.append('submissionId', selectedSubmission.id);
-        formData.append('transactionId', txnId.trim());
-        formData.append('screenshotUrl', screenshotUrl);
-        formData.append('track', selectedSubmission.track || '');
-        formData.append('submittedAt', new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
-        // Also attach the actual image file so n8n can access it
-        formData.append('paymentImage', screenshot, screenshot.name);
-
-        await fetch(N8N_WEBHOOK, { method: 'POST', body: formData });
-      } catch (webhookErr) {
-        // Webhook failure is non-fatal — payment is already saved in Firestore
-        console.warn('n8n webhook call failed (non-fatal):', webhookErr);
-      }
+      // 2. Fire-and-forget webhook — do NOT await so the user sees success instantly
+      fetch(N8N_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid: user.id,
+          email: user.email || passport.people?.[0]?.email || '',
+          teamName: passport.team || '',
+          category: passport.category || '',
+          registrationId,
+          submissionId: selectedSubmission.id,
+          transactionId: txnId.trim(),
+          screenshotUrl,
+          track: selectedSubmission.track || '',
+          submittedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+        }),
+      }).catch((e) => console.warn('n8n webhook (non-fatal):', e));
 
       setSubmitted(true);
     } catch (err) {
