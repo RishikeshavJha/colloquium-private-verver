@@ -233,9 +233,9 @@ export const ProfilePage: React.FC = () => {
         {/* Top Navy Header Band */}
         <div className="relative z-10 px-5 pt-5 pb-4 flex items-center justify-between" style={{borderBottom: '1px solid rgba(255,255,255,0.1)'}}>
           <div className="flex items-center gap-2.5">
-            <img src="/slrtce-logo.png" alt="SLRTCE" className="h-9 w-auto object-contain" style={{filter: 'brightness(10)'}} />
+            <img src="/slrtce-logo.png" alt="SLRTCE Logo" className="h-9 w-auto object-contain drop-shadow-sm" />
             <div className="h-7 w-px bg-white/30" />
-            <img src="/ieee-slrtce-logo.png" alt="IEEE" className="h-9 w-auto object-contain" style={{filter: 'brightness(10)'}} />
+            <img src="/ieee-slrtce-logo-white.png" alt="IEEE SLRTCE Logo" className="h-9 w-auto object-contain drop-shadow-sm" />
           </div>
           <div className="text-right">
             <div className="text-[8px] font-mono text-white/40 uppercase tracking-widest">PASS ID</div>
@@ -336,11 +336,11 @@ export const ProfilePage: React.FC = () => {
           PARTICIPANT PROFILE
         </div>
         <h1 className="font-display text-2xl sm:text-3xl sm:text-4xl font-extrabold text-[#0A2A5E]">
-          {hasSubmitted ? 'Official Event Passes' : 'Participant Profile'}
+          {hasSubmitted ? 'Your Profile & Digital ID Pass' : 'Participant Profile'}
         </h1>
         <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1 text-center">
           {hasSubmitted
-            ? 'Verified event passes and credentials for entry and presentation access.'
+            ? 'Your verified participant details and digital ID pass for INSPIRE Colloquium 2026.'
             : 'Review and update your profile details and team members for event records.'}
         </p>
       </div>
@@ -378,11 +378,11 @@ export const ProfilePage: React.FC = () => {
             <div>
               <h3 className="font-display text-xl font-extrabold text-[#0A2A5E] uppercase tracking-wider">
                 {passport.people.length > 1
-                  ? `Official Team Event Passes (${passport.people.length} Members)`
-                  : 'Official Participant Event Pass'}
+                  ? `Your Team Profile & Digital ID Cards (${passport.people.length} Members)`
+                  : 'Your Profile & Digital ID Card'}
               </h3>
               <p className="text-xs text-[#5A5A7A] mt-0.5 font-medium">
-                Verified event credentials for entry, presentation, and track participation at INSPIRE Colloquium 2026.
+                Your verified participant profile and digital ID card for entry and presentation at INSPIRE Colloquium 2026.
               </p>
             </div>
             <Link
