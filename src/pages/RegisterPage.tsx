@@ -1225,7 +1225,7 @@ export const RegisterPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
               {/* Team Name for UG */}
               {data.category === 'UG' && (
-                <div className="md:col-span-2 bg-[#FFFDF9]/95 p-4 rounded-xl border border-[#C8B89A]/80 shadow-2xs">
+                <div>
                   <label className="block text-xs font-bold text-[#061838] mb-1.5 flex items-center gap-1.5">
                     <Users className="w-4 h-4 text-[#FF6B00]" />
                     <span>Team Name <span className="text-red-500">*</span></span>
@@ -1234,7 +1234,7 @@ export const RegisterPage: React.FC = () => {
                     type="text"
                     value={data.team}
                     onChange={(e) => handleUpdate((prev) => ({ ...prev, team: e.target.value }))}
-                    placeholder="Enter your team name (e.g. Innovators, ByteCoders)"
+                    placeholder="Enter team name (e.g. Innovators)"
                     className="w-full px-4 py-3 rounded-xl border border-[#C8B89A]/80 bg-[#FFFDF9]/95 text-base sm:text-sm text-[#061838] font-medium focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] min-h-[46px] shadow-2xs"
                   />
                   {errors.team && <p className="text-xs text-red-600 mt-1 font-medium">{errors.team}</p>}
@@ -1242,7 +1242,7 @@ export const RegisterPage: React.FC = () => {
               )}
 
               {/* Full Name */}
-              <div>
+              <div className={data.category !== 'UG' ? 'md:col-span-2' : ''}>
                 <label className="block text-xs font-bold text-[#061838] mb-1.5 flex items-center justify-between">
                   <span>Full Name (as on certificate) <span className="text-red-500">*</span></span>
                   <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
@@ -1276,9 +1276,6 @@ export const RegisterPage: React.FC = () => {
                   placeholder="Your Google email"
                   className="w-full px-4 py-3 rounded-xl border border-[#C8B89A]/80 bg-slate-100/90 text-slate-800 cursor-not-allowed font-medium text-base sm:text-sm focus:outline-none min-h-[46px] shadow-2xs"
                 />
-                <p className="text-[11px] text-[#2D3142] mt-1 font-medium">
-                  Your Google email address is automatically verified and locked.
-                </p>
                 {errors.email && <p className="text-xs text-red-600 mt-1 font-medium">{errors.email}</p>}
               </div>
 
@@ -1298,6 +1295,29 @@ export const RegisterPage: React.FC = () => {
                 {errors.mobile && <p className="text-xs text-red-600 mt-1 font-medium">{errors.mobile}</p>}
               </div>
 
+              {/* Degree / Diploma Selection for UG */}
+              {data.category === 'UG' && (
+                <div>
+                  <label className="block text-xs font-bold text-[#061838] mb-1.5">
+                    Course Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={leader.courseType || 'Degree'}
+                    onChange={(e) => {
+                      const newType = e.target.value as 'Degree' | 'Diploma';
+                      handleUpdate((prev) => {
+                        const leader = { ...prev.people[0], courseType: newType, year: '' };
+                        return { ...prev, people: [leader, ...prev.people.slice(1)] };
+                      });
+                    }}
+                    className="w-full px-4 py-3 rounded-xl border border-[#C8B89A]/80 bg-[#FFFDF9]/95 text-base sm:text-sm text-[#061838] font-medium focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] min-h-[46px] shadow-2xs"
+                  >
+                    <option value="Degree">Degree (B.E. / B.Tech / B.Sc / BCA)</option>
+                    <option value="Diploma">Diploma (Polytechnic)</option>
+                  </select>
+                </div>
+              )}
+
               {/* Year of Study */}
               <div>
                 <label className="block text-xs font-bold text-[#061838] mb-1.5">
@@ -1309,7 +1329,7 @@ export const RegisterPage: React.FC = () => {
                   className="w-full px-4 py-3 rounded-xl border border-[#C8B89A]/80 bg-[#FFFDF9]/95 text-base sm:text-sm text-[#061838] font-medium focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] min-h-[46px] shadow-2xs"
                 >
                   <option value="">Select Year of Study</option>
-                  {yearOptionsFor(data.category).map((y: string) => (
+                  {yearOptionsFor(data.category, leader.courseType || 'Degree').map((y: string) => (
                     <option key={y} value={y}>
                       {y}
                     </option>
@@ -1528,7 +1548,7 @@ export const RegisterPage: React.FC = () => {
                             className={`w-full px-4 py-3 rounded-xl border ${yearErr ? 'border-red-500 bg-red-50/30 ring-1 ring-red-400' : 'border-[#C8B89A]/80 bg-white'} text-base sm:text-sm text-[#061838] font-medium focus:outline-none focus:ring-2 focus:ring-[#0A2A5E] min-h-[46px] shadow-2xs`}
                           >
                             <option value="">Select Year of Study</option>
-                            {yearOptionsFor(data.category).map((y: string) => (
+                            {yearOptionsFor(data.category, member.courseType || leader.courseType || 'Degree').map((y: string) => (
                               <option key={y} value={y}>
                                 {y}
                               </option>

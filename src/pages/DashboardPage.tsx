@@ -22,6 +22,7 @@ import {
   X,
   CreditCard,
   ShieldCheck,
+  BadgeIndianRupee,
 } from 'lucide-react';
 
 const trackThemeImages: Record<string, { image: string; color: string }> = {
@@ -564,6 +565,8 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
+
+
       {/* Shortlist Selection & Payment Confirmation Banner Card */}
       {isSelected && (
         <div className="mb-8 bg-[#FFFDF9] border-2 border-[#138808] rounded-2xl p-5 sm:p-7 shadow-xl relative overflow-hidden backdrop-blur-sm">
@@ -580,7 +583,7 @@ export const DashboardPage: React.FC = () => {
                 Registration Fee & Presentation Slot Confirmation
               </h2>
               <p className="text-xs sm:text-sm text-[#5A5A7A] max-w-2xl leading-relaxed">
-                🎉 Congratulations! Your project has been selected for the INSPIRE Colloquium 2026 presentation round. Fee verification details will be processed below.
+                🎉 Congratulations! Your project has been selected for the INSPIRE Colloquium 2026. Complete payment below to confirm your presentation slot.
               </p>
             </div>
 
@@ -591,15 +594,20 @@ export const DashboardPage: React.FC = () => {
                   <ShieldCheck className="w-4 h-4 text-emerald-700" />
                   Fee Verified & Slot Confirmed
                 </span>
+              ) : payStatus === 'UNDER_REVIEW' ? (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-100 text-blue-900 border-2 border-blue-300 font-bold text-xs uppercase tracking-wider shadow-sm animate-pulse">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  Payment Under Verification
+                </span>
               ) : payStatus === 'FAILED' ? (
                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-100 text-rose-900 border-2 border-rose-400 font-bold text-xs uppercase tracking-wider shadow-sm">
                   <AlertCircle className="w-4 h-4 text-rose-700" />
                   Verification Issue · Contact Admin
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-100 text-amber-950 border-2 border-amber-400 font-bold text-xs uppercase tracking-wider shadow-sm animate-pulse">
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-100 text-amber-950 border-2 border-amber-400 font-bold text-xs uppercase tracking-wider shadow-sm">
                   <Clock className="w-4 h-4 text-amber-700" />
-                  Payment Details Pending
+                  Payment Pending
                 </span>
               )}
             </div>
@@ -607,7 +615,7 @@ export const DashboardPage: React.FC = () => {
 
           {/* Payment Card Body */}
           <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-5 items-center">
-            {/* Left 2 Cols: Details & Placeholder Notice */}
+            {/* Left 2 Cols: Details */}
             <div className="md:col-span-2 space-y-3">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200 text-xs">
                 <div>
@@ -624,31 +632,84 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-300 text-xs text-amber-950 flex items-start gap-3">
-                <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <div className="leading-relaxed">
-                  <strong className="font-bold text-amber-900 block mb-0.5">Payment Details Opening Soon</strong>
-                  The organizing committee will share the official registration fee payment details and upload instructions shortly. Keep your Pass ID ready.
+              {payStatus === 'UNDER_REVIEW' && (
+                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 flex items-start gap-3">
+                  <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">
+                    <strong className="font-bold block mb-0.5">Payment Under Verification</strong>
+                    Your payment proof has been received. The organizing team will verify your transaction and confirm your slot within 24–48 hours. We'll notify you via email.
+                  </div>
                 </div>
-              </div>
+              )}
+              {payStatus === 'NOT_PAID' && (
+                <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-300 text-xs text-amber-950 flex items-start gap-3">
+                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">
+                    <strong className="font-bold text-amber-900 block mb-0.5">⏰ Action Required: Complete Payment Within 24 Hours</strong>
+                    Pay the registration fee via UPI or bank transfer and submit your transaction ID + screenshot to confirm your presentation slot. <span className="font-bold text-rose-700">Slots not confirmed within 24 hours of selection may be reallocated.</span>
+                  </div>
+                </div>
+              )}
+              {payStatus === 'PAID' && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-start gap-3">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">
+                    <strong className="font-bold block mb-0.5">Payment Verified & Slot Confirmed!</strong>
+                    Your registration fee has been verified. Your presentation slot is officially confirmed. See you at INSPIRE Colloquium 2026!
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Right Col: Action Button / Placeholder Widget */}
-            <div className="p-4 rounded-xl bg-white border-2 border-[#C8B89A] flex flex-col items-center justify-center text-center space-y-2.5 shadow-sm">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 text-[#138808] flex items-center justify-center">
-                <CreditCard className="w-5 h-5" />
+            {/* Right Col: Action Button */}
+            <div className="p-4 rounded-xl bg-white border-2 border-[#C8B89A] flex flex-col items-center justify-center text-center space-y-3 shadow-sm">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                payStatus === 'PAID' ? 'bg-emerald-100 text-[#138808]' :
+                payStatus === 'UNDER_REVIEW' ? 'bg-blue-100 text-blue-700' :
+                payStatus === 'FAILED' ? 'bg-rose-100 text-rose-700' :
+                'bg-emerald-100 text-[#138808]'
+              }`}>
+                {payStatus === 'PAID' ? <ShieldCheck className="w-6 h-6" /> :
+                 payStatus === 'UNDER_REVIEW' ? <Clock className="w-6 h-6" /> :
+                 payStatus === 'FAILED' ? <AlertCircle className="w-6 h-6" /> :
+                 <BadgeIndianRupee className="w-6 h-6" />}
               </div>
               <div>
-                <span className="text-xs font-bold text-[#0A2A5E] block">Registration Fee Payment</span>
-                <span className="text-[10px] text-gray-500">Details will be shared shortly</span>
+                <span className="text-xs font-bold text-[#0A2A5E] block">Registration Fee</span>
+                <span className="text-[10px] text-gray-500">
+                  {payStatus === 'PAID' ? 'Confirmed & verified' :
+                   payStatus === 'UNDER_REVIEW' ? 'Verification in progress' :
+                   payStatus === 'FAILED' ? 'Contact organiser' :
+                   'Submit your payment proof'}
+                </span>
               </div>
-              <button
-                disabled
-                className="w-full py-2 px-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-400 font-bold text-xs cursor-not-allowed flex items-center justify-center gap-1.5"
-              >
-                <Clock className="w-3.5 h-3.5" />
-                <span>Payment Details Coming Soon</span>
-              </button>
+              {payStatus === 'NOT_PAID' && (
+                <Link
+                  to="/payment"
+                  className="w-full py-2.5 px-3 rounded-xl bg-[#138808] hover:bg-[#0e6806] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95"
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span>Pay & Submit Proof</span>
+                </Link>
+              )}
+              {payStatus === 'UNDER_REVIEW' && (
+                <span className="w-full py-2.5 px-3 rounded-xl bg-blue-100 text-blue-800 font-bold text-xs flex items-center justify-center gap-1.5 border border-blue-200">
+                  <Clock className="w-3.5 h-3.5" /> Under Verification
+                </span>
+              )}
+              {payStatus === 'PAID' && (
+                <span className="w-full py-2.5 px-3 rounded-xl bg-emerald-100 text-emerald-900 font-bold text-xs flex items-center justify-center gap-1.5 border border-emerald-300">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Slot Confirmed
+                </span>
+              )}
+              {payStatus === 'FAILED' && (
+                <a
+                  href="mailto:colloquium.ieee@slrtce.in"
+                  className="w-full py-2.5 px-3 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold text-xs flex items-center justify-center gap-1.5 border border-rose-300 transition-colors"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" /> Contact Organiser
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -915,8 +976,8 @@ export const DashboardPage: React.FC = () => {
                           Active Now · Unlocked
                         </span>
                       </div>
-                      <p className="text-xs text-[#5A5A7A] mt-1">
-                        Selected participants confirm their presentation slot and complete any registration requirements before the event.
+                      <p className="text-xs text-[#5A5A7A] mt-1 leading-relaxed">
+                        Selected participants must complete the registration fee payment and submit proof within <span className="font-bold text-rose-600">24 hours of selection</span>. Slots not confirmed within this window may be reallocated to the next shortlisted team.
                       </p>
                     </div>
                   </div>
