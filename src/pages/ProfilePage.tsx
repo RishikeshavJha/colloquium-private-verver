@@ -305,7 +305,7 @@ export const ProfilePage: React.FC = () => {
           </div>
           <div>
             <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Team Name</div>
-            <div className="font-black text-sm text-amber-300 mt-0.5">{passport.team || leader.name || '—'}</div>
+            <div className="font-black text-sm text-amber-300 mt-0.5">{passport.team || '—'}</div>
           </div>
         </div>
 
