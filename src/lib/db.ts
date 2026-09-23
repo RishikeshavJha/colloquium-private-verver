@@ -314,33 +314,60 @@ export async function saveProjectSubmission(
   });
 
   const submissionsRef = collection(db, "users", uid, "projectSubmissions");
-  const docRef = await addDoc(submissionsRef, {
-    userId: uid,
-    teamName: data.teamName,
-    leaderName: data.leaderName || data.teamName,
-    collegeName: data.collegeName || '',
-    email: data.email,
-    track: data.track,
-    category: data.category,
-    problemStatement: data.problemStatement,
-    solutionSummary: data.solutionSummary,
-    pptLink: data.pptLink,
-    secret: data.secret,
-    createdAtIST: istString,
-    userAgent:
-      typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
-    ip: "",
-    // ── Defaults — written only by other portals after this ──
-    paymentStatus: "NOT_PAID",
-    evaluationStatus: "PENDING",
-    evaluatedBy: "",
-    evaluatedAt: "",
-    evaluatorRemarks: "",
-    paymentVerifiedBy: "",
-    paymentVerifiedAt: "",
-    paymentTransactionId: "",
-    _createdAt: serverTimestamp(),
-  } satisfies Omit<FirestoreSubmission, "id"> & { _createdAt: ReturnType<typeof serverTimestamp> });
+
+  // ── UPSERT: check if user already has a submission — update it, don't add a new one ──
+  const existingSnap = await getDocs(submissionsRef);
+  let submissionId: string;
+
+  if (!existingSnap.empty) {
+    // Update the FIRST (and only expected) existing submission
+    const existingDoc = existingSnap.docs[0];
+    submissionId = existingDoc.id;
+    await updateDoc(doc(db, "users", uid, "projectSubmissions", submissionId), {
+      teamName: data.teamName,
+      leaderName: data.leaderName || data.teamName,
+      collegeName: data.collegeName || '',
+      email: data.email,
+      track: data.track,
+      category: data.category,
+      problemStatement: data.problemStatement,
+      solutionSummary: data.solutionSummary,
+      pptLink: data.pptLink,
+      secret: data.secret,
+      updatedAtIST: istString,
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+    });
+  } else {
+    // No existing submission — create a fresh one
+    const docRef = await addDoc(submissionsRef, {
+      userId: uid,
+      teamName: data.teamName,
+      leaderName: data.leaderName || data.teamName,
+      collegeName: data.collegeName || '',
+      email: data.email,
+      track: data.track,
+      category: data.category,
+      problemStatement: data.problemStatement,
+      solutionSummary: data.solutionSummary,
+      pptLink: data.pptLink,
+      secret: data.secret,
+      createdAtIST: istString,
+      userAgent:
+        typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+      ip: "",
+      // ── Defaults — written only by other portals after this ──
+      paymentStatus: "NOT_PAID",
+      evaluationStatus: "PENDING",
+      evaluatedBy: "",
+      evaluatedAt: "",
+      evaluatorRemarks: "",
+      paymentVerifiedBy: "",
+      paymentVerifiedAt: "",
+      paymentTransactionId: "",
+      _createdAt: serverTimestamp(),
+    } satisfies Omit<FirestoreSubmission, "id"> & { _createdAt: ReturnType<typeof serverTimestamp> });
+    submissionId = docRef.id;
+  }
 
   // Determine target n8n Submission Webhook based on Category
   const isUG = data.category.toUpperCase().includes('UG') || 
@@ -363,7 +390,7 @@ export async function saveProjectSubmission(
         formData.append("file", data.file);
       }
       formData.append("userId", uid);
-      formData.append("submissionId", docRef.id);
+      formData.append("submissionId", submissionId);
       formData.append("email", data.email);
       formData.append("teamName", data.teamName);
       formData.append("track", data.track);
@@ -393,7 +420,7 @@ export async function saveProjectSubmission(
     }
   }
 
-  return docRef.id;
+  return submissionId;
 }
 
 /**
