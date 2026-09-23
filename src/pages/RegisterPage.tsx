@@ -398,12 +398,10 @@ export const RegisterPage: React.FC = () => {
     });
   };
 
-  // Auto-ensure at least 2 team members for UG category so Member #2 form is shown by default.
-  // IMPORTANT: Only depend on data.category — NOT on data.people.length, otherwise this runs
-  // every time a member is added/removed, causing an infinite loop of adding empty members.
+  // Auto-ensure at least 2 team members for UG category so Member #2 form is shown by default in Step 3.
   useEffect(() => {
     if (data.category === 'UG' && data.people.length < 2) {
-      setData((prev) => {
+      handleUpdate((prev) => {
         if (prev.category === 'UG' && prev.people.length < 2) {
           const leader = prev.people[0] || emptyPerson();
           const member2 = {
@@ -412,15 +410,12 @@ export const RegisterPage: React.FC = () => {
             department: leader.department || '',
             year: leader.year || '',
           };
-          const next = { ...prev, people: [leader, member2] };
-          savePassport(next);
-          return next;
+          return { ...prev, people: [leader, member2] };
         }
         return prev;
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.category]);
+  }, [data.category, step]);
 
   // Ensure smooth scroll to top when changing steps
   useEffect(() => {
@@ -531,6 +526,20 @@ export const RegisterPage: React.FC = () => {
           team: '',
           people: [prev.people[0] || emptyPerson()],
         }));
+      } else if (step === 2 && data.people.length < 2) {
+        handleUpdate((prev) => {
+          if (prev.category === 'UG' && prev.people.length < 2) {
+            const leader = prev.people[0] || emptyPerson();
+            const member2 = {
+              ...emptyPerson(),
+              institution: leader.institution || '',
+              department: leader.department || '',
+              year: leader.year || '',
+            };
+            return { ...prev, people: [leader, member2] };
+          }
+          return prev;
+        });
       }
 
       if (step === 3) {
