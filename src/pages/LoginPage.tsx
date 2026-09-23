@@ -13,41 +13,8 @@ export const LoginPage: React.FC = () => {
         style={{ backgroundImage: "url('/inspire-collage-bg.jpg')" }}
       />
 
-      {/* 2. Seamless Warm-Cream Negative Space in Square / Rectangular Format (Soft Faded / Feathered Edges, NO Solid Card) */}
-      <div
-        className="absolute z-0 pointer-events-none"
-        style={{
-          width: 'min(86vw, 560px)',
-          height: 'min(80vh, 460px)',
-          backgroundColor: '#FAF2E5',
-          borderRadius: '20px',
-          filter: 'blur(24px)',
-          boxShadow: '0 0 40px 20px #FAF2E5',
-        }}
-      />
-      <div
-        className="absolute z-0 pointer-events-none"
-        style={{
-          width: 'min(80vw, 490px)',
-          height: 'min(74vh, 400px)',
-          backgroundColor: '#FAF2E5',
-          borderRadius: '16px',
-          filter: 'blur(12px)',
-          boxShadow: '0 0 24px 10px #FAF2E5',
-        }}
-      />
-      <div
-        className="absolute z-0 pointer-events-none"
-        style={{
-          width: 'min(74vw, 430px)',
-          height: 'min(68vh, 350px)',
-          backgroundColor: '#FAF2E5',
-          borderRadius: '14px',
-        }}
-      />
-
-      {/* 3. Content Container (ZERO solid card, seamlessly floating directly on the faded cream square) */}
-      <div className="w-full max-w-md sm:max-w-lg relative z-10 mx-auto my-auto text-center px-4 py-2">
+      {/* 2. Content Box with Outline (No fading blur effect) */}
+      <div className="w-full max-w-md sm:max-w-lg relative z-10 mx-auto my-auto text-center px-6 py-6 sm:px-8 sm:py-7 rounded-2xl sm:rounded-3xl border-2 border-[#C8B89A] bg-[#FAF2E5] shadow-xl">
         <GoogleAuthCard initialMode="unified" />
       </div>
     </div>
