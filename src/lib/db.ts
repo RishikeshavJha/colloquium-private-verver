@@ -158,7 +158,7 @@ export async function saveUserRegistration(
     memberEmails: string[];
     teamMembers: FirestoreTeamMember[];
   },
-  options?: { triggerWebhook?: boolean }
+  triggerWebhook: boolean = false
 ): Promise<void> {
   const now = new Date().toISOString();
 
@@ -200,8 +200,8 @@ export async function saveUserRegistration(
     });
   }
 
-  // Trigger n8n Registration Welcome Email Webhook ONLY when explicitly requested (brand new initial registration completion)
-  if (options?.triggerWebhook) {
+  // Trigger n8n Registration Welcome Email Webhook ONLY when explicitly requested (e.g. final step completion)
+  if (triggerWebhook) {
     try {
       const payload = {
         uid,
