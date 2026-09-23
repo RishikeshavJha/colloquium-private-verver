@@ -213,6 +213,7 @@ export const ProfilePage: React.FC = () => {
     .slice(0, 4)}`;
 
   const trackInfo = tracks.find((t) => t.name === passport.track);
+  const hasSubmitted = Boolean(passport.abstracts && passport.abstracts.length > 0);
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12 w-full flex flex-col items-center">
@@ -226,9 +227,27 @@ export const ProfilePage: React.FC = () => {
           Participant Profile
         </h1>
         <p className="text-xs sm:text-sm text-[#5A5A7A] mt-1 text-center">
-          Review and update your profile details and team members for event records.
+          Review your profile details and team members for event records.
         </p>
       </div>
+
+      {hasSubmitted && (
+        <div className="mb-8 w-full max-w-2xl mx-auto p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3 text-left">
+            <Lock className="w-5 h-5 text-amber-700 shrink-0" />
+            <div>
+              <span className="text-xs font-bold text-amber-900 block uppercase tracking-wide">Profile Locked Post-Submission</span>
+              <span className="text-[11px] text-amber-800 font-medium">Your submission has been received and is under review. Profile editing is disabled.</span>
+            </div>
+          </div>
+          <Link
+            to="/dashboard"
+            className="text-xs font-bold text-[#0A2A5E] bg-white border border-[#C8B89A] px-3.5 py-2 rounded-xl hover:bg-gray-50 shrink-0 ml-3"
+          >
+            ← Dashboard
+          </Link>
+        </div>
+      )}
 
       {/* Toast Notification - Floating at top-right completely clear of footer */}
       {toast && (
@@ -785,13 +804,20 @@ export const ProfilePage: React.FC = () => {
               <Link to="/dashboard" className="text-xs font-semibold text-[#5A5A7A] hover:text-[#0A2A5E]">
                 ← Back to Dashboard
               </Link>
-              <button
-                type="submit"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 min-h-[44px]"
-              >
-                <Save className="w-4 h-4" />
-                <span>Save Profile Changes</span>
-              </button>
+              {!hasSubmitted ? (
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 min-h-[44px]"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save Profile Changes</span>
+                </button>
+              ) : (
+                <div className="px-4 py-2.5 rounded-xl bg-gray-100 border border-gray-300 text-gray-500 text-xs font-bold flex items-center gap-2">
+                  <Lock className="w-3.5 h-3.5 text-gray-500" />
+                  <span>Editing Locked Post-Submission</span>
+                </div>
+              )}
             </div>
           </form>
         </div>

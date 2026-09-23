@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Lock,
   ArrowRight,
+  Eye,
 } from 'lucide-react';
 
 const trackThemeImages: Record<string, { image: string; color: string }> = {
@@ -292,16 +293,18 @@ export const DashboardPage: React.FC = () => {
               to="/submit"
               className="inline-flex items-center justify-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] text-white text-xs font-bold px-4 py-3 sm:py-2.5 rounded-xl shadow-md transition-all active:scale-95 min-h-[44px]"
             >
-              <Upload className="w-3.5 h-3.5" />
+              {hasSubmitted ? <Eye className="w-3.5 h-3.5" /> : <Upload className="w-3.5 h-3.5" />}
               <span>{hasSubmitted ? 'View Submission' : 'Attach Your Submission'}</span>
             </Link>
-            <Link
-              to="/profile"
-              className="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-gray-50 border border-[#C8B89A] text-[#0A2A5E] text-xs font-bold px-3.5 py-3 sm:py-2.5 rounded-xl shadow-sm transition-all min-h-[44px]"
-            >
-              <User className="w-3.5 h-3.5" />
-              <span>Edit Profile</span>
-            </Link>
+            {!hasSubmitted && (
+              <Link
+                to="/profile"
+                className="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-gray-50 border border-[#C8B89A] text-[#0A2A5E] text-xs font-bold px-3.5 py-3 sm:py-2.5 rounded-xl shadow-sm transition-all min-h-[44px]"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Edit Profile</span>
+              </Link>
+            )}
             <Link
               to="/community"
               className="inline-flex items-center justify-center gap-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 text-[#128C7E] text-xs font-bold px-3.5 py-3 sm:py-2.5 rounded-xl transition-all min-h-[44px]"
@@ -873,12 +876,14 @@ export const DashboardPage: React.FC = () => {
               )}
             </div>
 
-            <Link
-              to="/profile"
-              className="mt-4 w-full py-2.5 rounded-lg bg-[#FAF6EE] hover:bg-[#FAF0DB] border border-[#C8B89A] text-[#0A2A5E] text-xs font-bold text-center inline-flex items-center justify-center transition-colors min-h-[44px]"
-            >
-              Edit Profile Details →
-            </Link>
+            {!hasSubmitted && (
+              <Link
+                to="/profile"
+                className="mt-4 w-full py-2.5 rounded-lg bg-[#FAF6EE] hover:bg-[#FAF0DB] border border-[#C8B89A] text-[#0A2A5E] text-xs font-bold text-center inline-flex items-center justify-center transition-colors min-h-[44px]"
+              >
+                Edit Profile Details →
+              </Link>
+            )}
           </div>
 
           {/* Team / Participant Directory Card */}
@@ -904,7 +909,7 @@ export const DashboardPage: React.FC = () => {
               ))}
             </div>
 
-            {passport.category === 'UG' && (
+            {passport.category === 'UG' && !hasSubmitted && (
               <Link
                 to="/profile"
                 className="mt-3 text-[11px] font-bold text-[#FF6B00] hover:underline inline-flex items-center justify-center w-full min-h-[44px]"
