@@ -333,7 +333,7 @@ export const DashboardPage: React.FC = () => {
                       ? 'Payment Deadline (Oct 2, 12 PM)'
                       : hasSubmitted
                       ? 'Evaluation Window (Ends Oct 1)'
-                      : 'PPT Submission (Deadline Sept 30)'}
+                      : 'SUBMISSION (DEADLINE SEPT 30)'}
                   </span>
                   <span className="w-1.5 h-1.5 rounded-full animate-ping bg-[#FF6B00]" />
                 </div>
@@ -342,7 +342,7 @@ export const DashboardPage: React.FC = () => {
                     ? 'Confirm slot before 12:00 PM'
                     : hasSubmitted
                     ? 'Evaluation till 1st Oct 11:59 PM'
-                    : 'Submit PPT before 30th Sept 11:59 PM'}
+                    : 'Submit before 30th Sept 11:59 PM'}
                 </span>
               </div>
             </div>
@@ -483,7 +483,7 @@ export const DashboardPage: React.FC = () => {
                   Theme Pending
                 </h4>
                 <span className="text-[11px] text-[#5A5A7A] block mt-0.5 leading-snug">
-                  Select your research theme during abstract submission
+                  Select your research theme during submission
                 </span>
               </div>
               <div className="mt-2 pt-2 border-t border-[#C8B89A]/30 text-[10px] flex items-center justify-between">
@@ -526,14 +526,14 @@ export const DashboardPage: React.FC = () => {
                 ? 'Evaluation completed by panel'
                 : hasSubmitted
                 ? 'Submission under committee evaluation'
-                : 'Upload abstract before deadline'}
+                : 'Upload submission before deadline'}
             </span>
           </div>
           <Link
             to="/submit"
             className="mt-4 pt-3 border-t border-[#C8B89A]/30 text-[11px] font-bold text-[#FF6B00] hover:underline inline-flex items-center gap-1"
           >
-            <span>{hasSubmitted ? 'View Submission' : 'Submit Abstract'}</span>
+            <span>{hasSubmitted ? 'View Submission' : 'Submit'}</span>
             <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
