@@ -2,24 +2,71 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { criteria } from '../data/tracks';
 import {
-  CheckCircle2,
-  FileText,
+  Lock,
+  ArrowRight,
   Sparkles,
   Users,
-  Clock,
-  ArrowRight,
 } from 'lucide-react';
 
 export const GuidelinesPage: React.FC = () => {
+  // Guidelines are locked while under review & finalization by the committee
+  const isGuidelinesLocked = true;
+
+  if (isGuidelinesLocked) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center select-none w-full flex flex-col items-center">
+        <div className="bg-[#FFFDF9]/95 rounded-3xl border-2 border-[#C8B89A] p-8 sm:p-12 shadow-2xl relative overflow-hidden backdrop-blur-sm w-full">
+          <div className="w-16 h-16 rounded-2xl bg-[#0A2A5E] text-amber-400 flex items-center justify-center mx-auto mb-5 shadow-lg">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold uppercase tracking-widest mb-3">
+            SECTION LOCKED · UNDER REVIEW
+          </div>
+
+          <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-[#0A2A5E] mb-3">
+            Guidelines Under Finalization
+          </h1>
+
+          <p className="font-sans text-sm text-[#5A5A7A] max-w-md mx-auto leading-relaxed mb-8">
+            The official conference guidelines, eligibility parameters, and evaluation frameworks for INSPIRE Colloquium 2026 are currently being finalized by the organizing committee. They will be officially released shortly.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              to="/register"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] text-white text-sm font-bold px-7 py-3 rounded-xl shadow-lg transition-all active:scale-95"
+            >
+              <span>Proceed to Registration</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              to="/dashboard"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#FAF6EE] hover:bg-white text-[#0A2A5E] border-2 border-[#C8B89A] text-sm font-bold px-6 py-3 rounded-xl transition-all"
+            >
+              <span>Go to Dashboard</span>
+            </Link>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-[#C8B89A]/40">
+            <Link to="/" className="text-xs font-semibold text-[#5A5A7A] hover:text-[#0A2A5E]">
+              ← Return to Homepage
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const totalPoints = criteria.reduce((acc, [, pts]) => acc + pts, 0);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12 w-full flex flex-col items-center">
       {/* Header */}
-      <div className="text-center mb-10">
+      <div className="text-center mb-10 w-full max-w-3xl mx-auto flex flex-col items-center bg-[#FAF6EE]/90 backdrop-blur-[2px] p-4 sm:p-6 rounded-2xl border border-[#C8B89A]/30 shadow-xs">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-xs font-bold tracking-widest text-[#0A2A5E] uppercase mb-2">
           <Sparkles className="w-3 h-3 text-[#FF6B00]" />
-          OFFICIAL CONCLAVE COMPENDIUM
+          OFFICIAL STUDENT BRANCH COMPENDIUM
         </div>
         <h1 className="font-display text-2xl sm:text-3xl lg:text-5xl font-extrabold text-[#0A2A5E]">
           Conference Guidelines & Evaluation Framework
@@ -144,11 +191,11 @@ export const GuidelinesPage: React.FC = () => {
           </ul>
         </div>
 
-        {/* Conclave Presentation Format */}
+        {/* Colloquium Presentation Format */}
         <div className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-2xl p-6 sm:p-8 shadow-sm">
           <h3 className="font-display text-xl font-bold text-[#0A2A5E] mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-[#FF6B00]" />
-            <span>Conclave Presentation & Defense</span>
+            <span>Colloquium Presentation & Defense</span>
           </h3>
 
           <div className="space-y-3 text-xs text-[#5A5A7A]">
@@ -178,7 +225,7 @@ export const GuidelinesPage: React.FC = () => {
         <div>
           <h3 className="font-display text-lg sm:text-2xl font-bold text-center sm:text-left">Ready to Showcase Your Research?</h3>
           <p className="text-xs sm:text-sm text-white/80 mt-1 max-w-md">
-            Register your delegation today and take the first step towards Viksit Bharat 2047.
+            Register for team or solo participation today and participate in INSPIRE Colloquium 2026.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

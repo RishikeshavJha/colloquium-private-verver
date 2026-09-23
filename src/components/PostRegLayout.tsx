@@ -1,21 +1,28 @@
 import { Outlet } from 'react-router-dom';
 import PostRegNavbar from './PostRegNavbar';
-import { Link } from 'react-router-dom';
+import InspireParchmentBackground from './InspireParchmentBackground';
+import { InspireBackgroundProvider } from '../context/InspireBackgroundContext';
+import { Globe } from 'lucide-react';
 
 const PostRegLayout = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF6EE] font-sans selection:bg-[#FF9933]/30">
-      {/* Paper texture bg */}
-      <div
-        className="fixed inset-0 pointer-events-none z-0 bg-[#FAF6EE] bg-no-repeat bg-center bg-cover opacity-60"
-        style={{ backgroundImage: "url('/paper-texture-clean.jpg')" }}
-      />
+    <InspireBackgroundProvider>
+      <div className="min-h-screen flex flex-col bg-[#FAF6EE] font-sans selection:bg-[#FF9933]/30">
+        {/* Paper texture bg - subtle texture without washing out artwork */}
+        <div
+          className="fixed inset-0 pointer-events-none z-0 bg-[#FAF6EE] bg-no-repeat bg-center bg-cover opacity-25"
+          style={{ backgroundImage: "url('/paper-texture-clean.jpg')" }}
+        />
 
-      <PostRegNavbar />
+        <PostRegNavbar />
 
-      <main className="flex-grow relative z-10 flex flex-col justify-start pb-12 sm:pb-20 w-full overflow-x-hidden">
-        <Outlet />
-      </main>
+        <main className="registration-workspace flex-grow relative z-10 flex flex-col items-center justify-start pb-4 sm:pb-6 w-full overflow-x-hidden">
+          <InspireParchmentBackground />
+
+          <div className="relative z-10 w-full flex-grow flex flex-col items-center justify-start">
+            <Outlet />
+          </div>
+        </main>
 
       {/* Footer */}
       <footer className="w-full text-white relative z-10 font-sans bg-[#0A2A5E] mt-auto overflow-hidden">
@@ -61,9 +68,9 @@ const PostRegLayout = () => {
                   <img src="/slrtce-logo.png" alt="SLRTCE Logo" className="h-6 sm:h-7 w-auto object-contain" />
                 </a>
                 <div className="h-4 sm:h-5 w-px bg-white/30" />
-                <Link to="/" title="IEEE SLRTCE Student Branch" className="transition-transform hover:scale-105">
-                  <img src="/ieee-slrtce-logo.png" alt="IEEE SLRTCE" className="h-6 sm:h-7 w-auto object-contain" />
-                </Link>
+                <div title="IEEE SLRTCE Student Branch" className="flex items-center">
+                  <img src="/ieee-slrtce-logo-white.png" alt="IEEE SLRTCE" className="h-6 sm:h-7 w-auto object-contain" />
+                </div>
               </div>
               <p className="text-[9px] font-semibold tracking-wider text-amber-400 uppercase">
                 INSPIRE Colloquium 2026
@@ -77,28 +84,41 @@ const PostRegLayout = () => {
             <div className="flex items-center gap-3">
               <div className="flex gap-1.5">
                 {[
-                  { label: 'LinkedIn', icon: 'in' },
-                  { label: 'Twitter', icon: 'X' },
-                  { label: 'Instagram', icon: 'ig' },
+                  {
+                    label: 'LinkedIn',
+                    icon: 'in',
+                    url: 'https://www.linkedin.com/company/slrtcecollege/',
+                  },
+                  {
+                    label: 'SLRTCE Website',
+                    icon: <Globe className="w-3.5 h-3.5 sm:w-3 sm:h-3" />,
+                    url: 'https://slrtce.in/',
+                  },
+                  {
+                    label: 'Instagram',
+                    icon: 'ig',
+                    url: 'https://www.instagram.com/slrtce/',
+                  },
                 ].map(social => (
-                  <div
+                  <a
                     key={social.label}
+                    href={social.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     title={social.label}
                     className="w-10 h-10 sm:w-6 sm:h-6 flex items-center justify-center bg-white/10 hover:bg-[#FF6B00] hover:text-white rounded-full cursor-pointer transition-all text-white font-bold text-[10px] sm:text-[9px]"
                   >
                     {social.icon}
-                  </div>
+                  </a>
                 ))}
               </div>
-              <Link to="/" className="text-[10px] sm:text-[9px] font-bold text-white bg-[#FF6B00] hover:bg-[#E65A00] transition-all px-3 py-2 sm:px-2.5 sm:py-1 rounded-full shadow-sm hover:shadow active:scale-95 min-h-[44px] sm:min-h-0 flex items-center justify-center">
-                Home ↑
-              </Link>
             </div>
           </div>
         </div>
       </footer>
     </div>
-  );
+  </InspireBackgroundProvider>
+);
 };
 
 export default PostRegLayout;

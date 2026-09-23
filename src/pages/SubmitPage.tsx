@@ -47,6 +47,7 @@ export const SubmitPage: React.FC = () => {
   const [existingSubmission, setExistingSubmission] = useState<(FirestoreSubmission & { id: string }) | null>(null);
   const [firestoreLoading, setFirestoreLoading] = useState(false);
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
+  const isUG = passport.category === 'UG';
 
   const category = (passport.category || user?.degree || '').toUpperCase();
   const isUG = category.includes('UG') || category.includes('UNDERGRADUATE') || category === 'DIPLOMA';
@@ -66,7 +67,7 @@ export const SubmitPage: React.FC = () => {
     }
   }, []);
 
-  const isUnlocked = !!user || !!passport.registered;
+  const isUnlocked = !!passport.registered;
 
   if (!isUnlocked) {
     return (
@@ -106,7 +107,7 @@ export const SubmitPage: React.FC = () => {
 
           <div className="mt-8 pt-6 border-t border-[#C8B89A]/40">
             <Link to="/" className="text-xs font-semibold text-[#5A5A7A] hover:text-[#0A2A5E]">
-              ← Return to Conclave Homepage
+              ← Return to Home
             </Link>
           </div>
         </div>
@@ -114,11 +115,22 @@ export const SubmitPage: React.FC = () => {
     );
   }
 
+  // Helper to validate whether a URL points to a real uploaded file
+  const isValidSubmissionFileUrl = (url?: string | null): boolean => {
+    if (!url) return false;
+    const trimmed = url.trim();
+    if (!trimmed || trimmed === 'Abstract Only' || trimmed === 'undefined' || trimmed === 'null' || trimmed === 'None' || trimmed === 'N/A') {
+      return false;
+    }
+    return trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('blob:') || trimmed.startsWith('data:');
+  };
+
   // If user has already submitted a presentation, render locked view with PPT view & evaluation status
   if (existingSubmission || (passport.abstracts && passport.abstracts.length > 0)) {
     const sub = existingSubmission;
     const localAbs = passport.abstracts[0];
-    const pptUrl = sub?.pptLink || sub?.pdfLink || '';
+    const rawPptUrl = sub?.pptLink || sub?.pdfLink || (localAbs && 'driveUrl' in localAbs ? (localAbs as any).driveUrl : '') || '';
+    const hasValidPpt = isValidSubmissionFileUrl(rawPptUrl);
     const rawStatus = (sub?.evaluationStatus || 'PENDING').toUpperCase();
 
     return (
@@ -132,7 +144,7 @@ export const SubmitPage: React.FC = () => {
                 SUBMISSION RECORD LOCKED
               </div>
               <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#0A2A5E]">
-                Presentation Already Submitted
+                {hasValidPpt ? 'Presentation Already Submitted' : 'Submission Details & Status'}
               </h2>
             </div>
 
@@ -141,7 +153,7 @@ export const SubmitPage: React.FC = () => {
               {rawStatus === 'SELECTED' ? (
                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold text-xs uppercase tracking-wider shadow-sm">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  Selected for Conclave
+                  Selected for Colloquium Presentation
                 </span>
               ) : rawStatus === 'REJECTED' ? (
                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-100 text-rose-900 border border-rose-300 font-bold text-xs uppercase tracking-wider shadow-sm">
@@ -161,8 +173,12 @@ export const SubmitPage: React.FC = () => {
           <div className="p-4 rounded-2xl bg-[#FAF6EE] border border-[#C8B89A] flex items-start gap-3">
             <Info className="w-5 h-5 text-[#FF6B00] shrink-0 mt-0.5" />
             <div className="text-xs text-[#5A5A7A] leading-relaxed">
-              <strong className="text-[#0A2A5E] font-bold block mb-0.5">Presentation Upload Completed:</strong>
-              Your presentation file and abstract details have been securely submitted for evaluation. To preserve review fairness, another submission cannot be uploaded.
+              <strong className="text-[#0A2A5E] font-bold block mb-0.5">
+                {hasValidPpt ? 'Presentation Upload Completed:' : 'Abstract Submission Received:'}
+              </strong>
+              {hasValidPpt
+                ? 'Your presentation file and abstract details have been securely submitted for evaluation. To preserve review fairness, another submission cannot be uploaded.'
+                : 'Your research abstract details have been securely recorded for evaluation. To preserve review fairness, another submission cannot be uploaded.'}
             </div>
           </div>
 
@@ -200,25 +216,25 @@ export const SubmitPage: React.FC = () => {
               </div>
             )}
 
-            {/* View Submitted Presentation */}
-            <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-[#0A2A5E]">Submitted Presentation File</label>
-              <div className="mt-1.5 p-4 rounded-2xl bg-white border-2 border-[#0A2A5E]/20 flex items-center justify-between gap-3 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#0A2A5E] text-amber-400 flex items-center justify-center font-bold">
-                    <FileText className="w-5 h-5" />
+            {/* View Submitted Presentation - ONLY SHOW IF AN ACTUAL PRESENTATION FILE WAS SUBMITTED */}
+            {hasValidPpt && (
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-[#0A2A5E]">Submitted Presentation File</label>
+                <div className="mt-1.5 p-4 rounded-2xl bg-white border-2 border-[#0A2A5E]/20 flex items-center justify-between gap-3 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#0A2A5E] text-amber-400 flex items-center justify-center font-bold">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-[#0A2A5E]">
+                        {localAbs?.filename || 'Presentation_File.pdf'}
+                      </h4>
+                      <span className="text-[11px] font-medium text-emerald-700">Uploaded & Verified in Database</span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-[#0A2A5E]">
-                      {localAbs?.filename || 'Presentation_File.pdf'}
-                    </h4>
-                    <span className="text-[11px] font-medium text-emerald-700">Uploaded & Verified in Database</span>
-                  </div>
-                </div>
 
-                {pptUrl ? (
                   <a
-                    href={pptUrl}
+                    href={rawPptUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E65A00] text-white text-xs font-bold shadow-md transition-all shrink-0 active:scale-95"
@@ -226,13 +242,9 @@ export const SubmitPage: React.FC = () => {
                     <span>View Submitted Presentation</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
-                ) : (
-                  <span className="text-xs font-bold text-[#138808] bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
-                    Recorded
-                  </span>
-                )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="pt-4 border-t border-[#C8B89A]/40 text-center">
@@ -322,7 +334,7 @@ export const SubmitPage: React.FC = () => {
 
     // PPT is mandatory only for UG category; optional or not required for PG / PPG
     if (isUG && !file) {
-      errors.file = 'Please attach your PPT presentation.';
+      errors.file = 'Please attach your presentation submission.';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -408,9 +420,9 @@ export const SubmitPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-10 md:py-14">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-10 md:py-14 w-full flex flex-col items-center">
       {/* Header */}
-      <div className="text-center mb-10">
+      <div className="text-center mb-10 w-full max-w-3xl mx-auto flex flex-col items-center bg-[#FAF6EE]/90 backdrop-blur-[2px] p-4 sm:p-6 rounded-2xl border border-[#C8B89A]/30 shadow-xs">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0A2A5E]/10 border border-[#C8B89A] text-xs sm:text-sm font-bold tracking-widest text-[#0A2A5E] uppercase mb-3">
           <Sparkles className="w-4 h-4 text-[#FF6B00]" />
           RESEARCH PORTAL · STAGE 1
@@ -494,7 +506,7 @@ export const SubmitPage: React.FC = () => {
         {/* Paper Title */}
         <div>
           <label className="block text-sm font-extrabold uppercase tracking-wider text-[#0A2A5E] mb-2">
-            Research / Abstract Title <span className="text-red-500">*</span>
+               Abstract Title <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -590,9 +602,6 @@ export const SubmitPage: React.FC = () => {
               <Users className="w-4 h-4 text-[#FF6B00]" />
               <span>Authors & Teammates</span>
             </label>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#5A5A7A] bg-[#FAF6EE] px-3 py-1 rounded-full border border-[#C8B89A]">
-              Verified in Passport (Read-Only)
-            </span>
           </div>
 
           <div className="bg-white border-2 border-[#C8B89A] rounded-2xl p-5 shadow-xs">
