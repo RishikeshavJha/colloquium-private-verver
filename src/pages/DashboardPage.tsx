@@ -5,7 +5,6 @@ import { getUserSubmissions, type FirestoreSubmission } from '../lib/db';
 import { tracks } from '../data/tracks';
 import { useInspireBackground } from '../context/InspireBackgroundContext';
 import {
-  FileText,
   Upload,
   User,
   Users,
@@ -181,22 +180,11 @@ export const DashboardPage: React.FC = () => {
     (passport.abstracts && passport.abstracts.length > 0) ||
     firestoreSubmissions.length > 0
   );
-  const hasAbstracts = hasSubmitted;
 
   const selectedSubmission = firestoreSubmissions.find(s => s.evaluationStatus === 'SELECTED');
   const isSelected = Boolean(selectedSubmission);
   const isRejected = !isSelected && firestoreSubmissions.length > 0 && firestoreSubmissions.every(s => s.evaluationStatus === 'REJECTED');
   const payStatus = selectedSubmission?.paymentStatus || 'NOT_PAID';
-
-  // Helper to validate whether a URL points to an actual uploaded file
-  const isValidSubmissionFileUrl = (url?: string | null): boolean => {
-    if (!url) return false;
-    const trimmed = url.trim();
-    if (!trimmed || trimmed === 'Abstract Only' || trimmed === 'undefined' || trimmed === 'null' || trimmed === 'None' || trimmed === 'N/A') {
-      return false;
-    }
-    return trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('blob:') || trimmed.startsWith('data:');
-  };
 
   const categoryMeta = {
     UG: {
