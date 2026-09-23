@@ -14,8 +14,10 @@ import {
   type AuthUser,
 } from '../utils/storage';
 import { saveUserRegistration, getUserDoc, type FirestoreTeamMember } from '../lib/db';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../lib/firebase';
 import CommunityQR from '../components/CommunityQR';
-import { GoogleAuthCard, GoogleSvg } from '../components/GoogleAuthModal';
+import { GoogleSvg } from '../components/GoogleAuthModal';
 import { useInspireBackground, type BackgroundDensity } from '../context/InspireBackgroundContext';
 import {
   CheckCircle2,
@@ -89,7 +91,34 @@ export const RegisterPage: React.FC = () => {
   const selectedTrack = data.category === 'UG' ? 'ideathon' : (data.category === 'PG' || data.category === 'PPG') ? 'research' : null;
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [, setAuthUserState] = useState<AuthUser | null>(() => getAuthUser());
-  const [authModalMode, setAuthModalMode] = useState<'signup' | 'login' | 'unified' | null>(null);
+  const [entranceLoading, setEntranceLoading] = useState<boolean>(false);
+  const [entranceError, setEntranceError] = useState<string>('');
+
+  const handleDirectGoogleSignIn = async () => {
+    setEntranceLoading(true);
+    setEntranceError('');
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const firebaseUser = result.user;
+      const existingDoc = await getUserDoc(firebaseUser.uid);
+      const isNewUser = !existingDoc;
+      const user: AuthUser = {
+        id: firebaseUser.uid,
+        name: existingDoc?.name || firebaseUser.displayName || 'Research Scholar',
+        email: existingDoc?.email || firebaseUser.email || '',
+        avatar: firebaseUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(firebaseUser.uid)}`,
+        isNewUser,
+      };
+      await handleAuthSuccess(user);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes('popup-closed-by-user') && !msg.includes('cancelled-popup-request')) {
+        setEntranceError('Sign-in failed. Please try again.');
+      }
+    } finally {
+      setEntranceLoading(false);
+    }
+  };
 
   // Dynamic density per registration step: Category (normal), Leader & Team (quiet), WhatsApp (normal), Event Pass (expressive)
   const stepDensity: BackgroundDensity =
@@ -101,7 +130,6 @@ export const RegisterPage: React.FC = () => {
 
   const handleAuthSuccess = async (user: AuthUser) => {
     setAuthUserState(user);
-    setAuthModalMode(null);
 
     // Check Firestore to see if user data already exists in database
     const existingDoc = await getUserDoc(user.id);
@@ -571,39 +599,15 @@ export const RegisterPage: React.FC = () => {
           style={{ backgroundImage: "url('/inspire-collage-bg.jpg')" }}
         />
 
-        {/* 2. Seamless Warm-Cream Negative Space (Blends naturally with collage pathways with ZERO card edges) */}
-        {/* Outer soft feathering into collage separator channels */}
+        {/* 2. Solid square card - no glow, no blur */}
         <div
           className="absolute z-0 pointer-events-none"
           style={{
-            width: 'min(94vw, 760px)',
-            height: 'min(86vh, 570px)',
+            width: 'min(82vw, 560px)',
+            height: 'min(74vh, 470px)',
             backgroundColor: '#FAF2E5',
-            borderRadius: '52% 48% 54% 46% / 46% 54% 46% 54%',
-            filter: 'blur(20px)',
-          }}
-        />
-
-        {/* Mid-range irregular negative space geometry */}
-        <div
-          className="absolute z-0 pointer-events-none"
-          style={{
-            width: 'min(88vw, 680px)',
-            height: 'min(80vh, 500px)',
-            backgroundColor: '#FAF2E5',
-            borderRadius: '44% 56% 48% 52% / 54% 44% 56% 46%',
-            filter: 'blur(10px)',
-          }}
-        />
-
-        {/* Solid center reading area: 100% opaque, zero border, zero box-shadow */}
-        <div
-          className="absolute z-0 pointer-events-none"
-          style={{
-            width: 'min(80vw, 590px)',
-            height: 'min(74vh, 440px)',
-            backgroundColor: '#FAF2E5',
-            borderRadius: '48% 52% 46% 54% / 50% 48% 52% 50%',
+            borderRadius: '8px',
+            border: '1.5px solid rgba(200,184,154,0.5)',
           }}
         />
 
@@ -645,15 +649,20 @@ export const RegisterPage: React.FC = () => {
           <div className="mt-5 sm:mt-6 max-w-md mx-auto space-y-2.5">
             <button
               type="button"
-              onClick={() => setAuthModalMode('unified')}
-              className="w-full flex items-center justify-center gap-3 bg-[#0A2A5E] hover:bg-[#082046] text-white font-bold text-sm sm:text-base py-3.5 sm:py-3.5 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all active:scale-[0.98] cursor-pointer group min-h-[48px]"
+              onClick={handleDirectGoogleSignIn}
+              disabled={entranceLoading}
+              className="w-full flex items-center justify-center gap-3 bg-[#0A2A5E] hover:bg-[#082046] text-white font-bold text-sm sm:text-base py-3.5 sm:py-3.5 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all active:scale-[0.98] cursor-pointer group min-h-[48px] disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <div className="w-6 h-6 bg-white rounded-full p-1 flex items-center justify-center shrink-0 shadow-sm">
-                <GoogleSvg className="w-4 h-4" />
+                <GoogleSvg className={`w-4 h-4 ${entranceLoading ? 'animate-spin' : ''}`} />
               </div>
-              <span className="tracking-wide">Continue with Google</span>
+              <span className="tracking-wide">{entranceLoading ? 'Signing in…' : 'Continue with Google'}</span>
             </button>
           </div>
+
+          {entranceError && (
+            <p className="text-xs text-red-600 text-center mt-2 font-semibold">{entranceError}</p>
+          )}
 
           {/* Concise Dynamic Routing Note */}
           <p className="text-xs text-center text-[#5A5A7A] mt-3 font-medium leading-relaxed">
@@ -661,18 +670,6 @@ export const RegisterPage: React.FC = () => {
             New user? Continue above to register.
           </p>
         </div>
-
-        {/* Google Authentication Modal */}
-        {authModalMode && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-sm animate-in fade-in duration-200">
-            <GoogleAuthCard
-              isModal={true}
-              initialMode={authModalMode}
-              onClose={() => setAuthModalMode(null)}
-              onSuccess={handleAuthSuccess}
-            />
-          </div>
-        )}
       </div>
     );
   }

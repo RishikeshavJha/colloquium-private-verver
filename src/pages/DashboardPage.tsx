@@ -23,6 +23,7 @@ import {
   CreditCard,
   ShieldCheck,
   BadgeIndianRupee,
+  Star,
 } from 'lucide-react';
 
 const trackThemeImages: Record<string, { image: string; color: string }> = {
@@ -309,18 +310,18 @@ export const DashboardPage: React.FC = () => {
           {/* Compact Premium Deadline Countdown Widget */}
           <div className="bg-[#FAF6EE]/90 backdrop-blur-md border border-[#C8B89A]/80 shadow-sm rounded-2xl p-2 sm:p-2.5 flex items-center justify-between gap-3 w-full sm:w-auto">
             <div className="flex items-center gap-2 pl-1">
-              <div className="w-7 h-7 rounded-xl bg-[#0A2A5E] text-amber-400 flex items-center justify-center shrink-0 shadow-sm">
-                <Clock className="w-3.5 h-3.5" />
+              <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${isSelected ? 'bg-[#FF6B00] text-white' : 'bg-[#0A2A5E] text-amber-400'}`}>
+                {isSelected ? <Star className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#0A2A5E]">
-                    {isUG ? 'PDF Submission Deadline' : 'Abstract Submission Deadline'}
+                    {isSelected ? 'Event Starts In' : isUG ? 'PDF Submission Deadline' : 'Abstract Submission Deadline'}
                   </span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] animate-ping" />
+                  <span className={`w-1.5 h-1.5 rounded-full animate-ping ${isSelected ? 'bg-[#FF6B00]' : 'bg-[#FF6B00]'}`} />
                 </div>
                 <span className="text-[9px] font-semibold text-[#5A5A7A]">
-                  INSPIRE Colloquium 2026
+                  {isSelected ? '🎉 You are Selected!' : 'INSPIRE Colloquium 2026'}
                 </span>
               </div>
             </div>
