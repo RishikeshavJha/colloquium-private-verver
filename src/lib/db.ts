@@ -59,6 +59,8 @@ export interface FirestoreTeamMember {
 export interface FirestoreSubmission {
   userId: string;
   teamName: string;
+  leaderName?: string;
+  collegeName?: string;
   email: string;
   track: string;
   category: string;
@@ -255,11 +257,14 @@ export async function uploadPPTFile(uid: string, file: File): Promise<string> {
  * initialized to safe defaults and NEVER overwritten by this function.
  */
 export const SUBMISSION_WEBHOOK_URL = "https://your-n8n-instance.cloud/webhook/your-submission-ug-webhook-id";
+export const PG_PPG_SUBMISSION_WEBHOOK_URL = "https://your-n8n-instance.cloud/webhook/your-submission-pg-webhook-id";
 
 export async function saveProjectSubmission(
   uid: string,
   data: {
     teamName: string;
+    leaderName?: string;
+    collegeName?: string;
     email: string;
     track: string;
     category: string;
@@ -285,6 +290,8 @@ export async function saveProjectSubmission(
   const docRef = await addDoc(submissionsRef, {
     userId: uid,
     teamName: data.teamName,
+    leaderName: data.leaderName || data.teamName,
+    collegeName: data.collegeName || '',
     email: data.email,
     track: data.track,
     category: data.category,
@@ -308,12 +315,21 @@ export async function saveProjectSubmission(
     _createdAt: serverTimestamp(),
   } satisfies Omit<FirestoreSubmission, "id"> & { _createdAt: ReturnType<typeof serverTimestamp> });
 
-  // Trigger n8n Submission Webhook (Only for UG submissions)
+  // Determine target n8n Submission Webhook based on Category
   const isUG = data.category.toUpperCase().includes('UG') || 
                data.category.toUpperCase().includes('UNDERGRADUATE') || 
                data.category.toUpperCase() === 'DIPLOMA';
 
-  if (isUG) {
+  const isPGorPPG = data.category.toUpperCase().includes('PG') ||
+                    data.category.toUpperCase().includes('POSTGRADUATE') ||
+                    data.category.toUpperCase().includes('PPG') ||
+                    data.category.toUpperCase().includes('PHD');
+
+  const targetWebhookUrl = isPGorPPG
+    ? PG_PPG_SUBMISSION_WEBHOOK_URL
+    : (isUG ? SUBMISSION_WEBHOOK_URL : PG_PPG_SUBMISSION_WEBHOOK_URL);
+
+  if (targetWebhookUrl) {
     try {
       const formData = new FormData();
       if (data.file) {
@@ -331,7 +347,7 @@ export async function saveProjectSubmission(
       formData.append("secret", data.secret);
       formData.append("createdAtIST", istString);
 
-      fetch(SUBMISSION_WEBHOOK_URL, {
+      fetch(targetWebhookUrl, {
         method: "POST",
         headers: {
           "Authorization": "Bearer your_n8n_bearer_secret_here",
@@ -339,7 +355,7 @@ export async function saveProjectSubmission(
         body: formData,
       }).catch((err) => {
         console.warn("Standard fetch failed, attempting fallback:", err);
-        fetch(SUBMISSION_WEBHOOK_URL, {
+        fetch(targetWebhookUrl, {
           method: "POST",
           mode: "no-cors",
           body: formData,

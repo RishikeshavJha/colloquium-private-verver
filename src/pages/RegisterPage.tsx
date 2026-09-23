@@ -309,6 +309,7 @@ export const RegisterPage: React.FC = () => {
   };
 
   const removeMember = (index: number) => {
+    if (data.category === 'UG' && data.people.length <= 2) return;
     if (data.people.length <= 1) return;
     handleUpdate((prev) => ({
       ...prev,
@@ -324,6 +325,33 @@ export const RegisterPage: React.FC = () => {
       return next;
     });
   };
+
+  // Auto-ensure at least 2 team members for UG category so Member #2 form is shown by default
+  useEffect(() => {
+    if (data.category === 'UG' && data.people.length < 2) {
+      handleUpdate((prev) => {
+        if (prev.category === 'UG' && prev.people.length < 2) {
+          const leader = prev.people[0] || emptyPerson();
+          const member2 = {
+            ...emptyPerson(),
+            institution: leader.institution || '',
+            department: leader.department || '',
+            year: leader.year || '',
+          };
+          return {
+            ...prev,
+            people: [leader, member2],
+          };
+        }
+        return prev;
+      });
+    }
+  }, [step, data.category, data.people.length]);
+
+  // Ensure smooth scroll to top when changing steps
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step, hasEntered]);
 
   const canProceed = () => {
     if (step === 1) {
@@ -1025,23 +1053,31 @@ export const RegisterPage: React.FC = () => {
                   <div
                     key={catKey}
                     onClick={() =>
-                      handleUpdate((prev) => ({
-                        ...prev,
-                        category: catKey,
-                        team: catKey === 'UG' ? prev.team : '',
-                        people: catKey === 'UG' ? prev.people : [prev.people[0] || emptyPerson()],
-                      }))
+                      handleUpdate((prev) => {
+                        const leader = prev.people[0] || emptyPerson();
+                        const ugPeople = prev.people.length >= 2 ? prev.people : [leader, { ...emptyPerson(), institution: leader.institution || '', department: leader.department || '', year: leader.year || '' }];
+                        return {
+                          ...prev,
+                          category: catKey,
+                          team: catKey === 'UG' ? prev.team : '',
+                          people: catKey === 'UG' ? ugPeople : [leader],
+                        };
+                      })
                     }
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-                        handleUpdate((prev) => ({
-                          ...prev,
-                          category: catKey,
-                          team: catKey === 'UG' ? prev.team : '',
-                          people: catKey === 'UG' ? prev.people : [prev.people[0] || emptyPerson()],
-                        }));
+                        handleUpdate((prev) => {
+                          const leader = prev.people[0] || emptyPerson();
+                          const ugPeople = prev.people.length >= 2 ? prev.people : [leader, { ...emptyPerson(), institution: leader.institution || '', department: leader.department || '', year: leader.year || '' }];
+                          return {
+                            ...prev,
+                            category: catKey,
+                            team: catKey === 'UG' ? prev.team : '',
+                            people: catKey === 'UG' ? ugPeople : [leader],
+                          };
+                        });
                       }
                     }}
                     className={`w-full rounded-[18px] transition-all duration-300 cursor-pointer select-none
@@ -1413,21 +1449,6 @@ export const RegisterPage: React.FC = () => {
                   You are registered for solo participation. No additional team members are needed.
                 </p>
               </div>
-            ) : data.people.length === 1 ? (
-              <div className="p-5 sm:p-8 border border-[#FF6B00]/40 rounded-xl text-center bg-[#FFFDF9]/95 shadow-2xs">
-                <Users className="w-10 h-10 text-[#FF6B00] mx-auto mb-2" />
-                <h4 className="font-bold text-[#0A2A5E]">Second Team Member Required</h4>
-                <p className="text-xs text-[#5A5A7A] max-w-md mx-auto mt-1 leading-relaxed">
-                  UG / Diploma teams must have between 2 and 4 members. Please click <strong>"Add Team Member"</strong> to add at least 1 teammate.
-                </p>
-                <button
-                  type="button"
-                  onClick={addMember}
-                  className="mt-4 inline-flex items-center gap-1.5 bg-[#FF6B00] hover:bg-[#E65A00] text-white text-xs font-bold px-5 py-3 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer min-h-[44px]"
-                >
-                  <Plus className="w-4 h-4" /> Add Second Team Member
-                </button>
-              </div>
             ) : (
               <div className="space-y-6">
                 {Object.keys(errors).some((k) => k.startsWith('member_')) && (
@@ -1466,13 +1487,19 @@ export const RegisterPage: React.FC = () => {
                           <Users className="w-3.5 h-3.5 text-[#FF6B00]" />
                           Team Member #{actualIndex + 1}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => removeMember(actualIndex)}
-                          className="text-red-600 hover:text-red-800 text-xs font-bold flex items-center gap-1 hover:underline min-h-[44px] px-2 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Remove
-                        </button>
+                        {data.category === 'UG' && data.people.length <= 2 && actualIndex === 1 ? (
+                          <span className="text-[11px] font-semibold text-amber-800 bg-amber-100/70 px-2.5 py-1 rounded-md border border-amber-300/60">
+                            Required Teammate (Min 2)
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => removeMember(actualIndex)}
+                            className="text-red-600 hover:text-red-800 text-xs font-bold flex items-center gap-1 hover:underline min-h-[44px] px-2 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Remove
+                          </button>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">

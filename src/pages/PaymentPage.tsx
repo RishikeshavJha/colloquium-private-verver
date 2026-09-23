@@ -19,8 +19,10 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 
+import paymentQrImg from '../Payment QR.jpeg';
+
 const REGISTRATION_FEE = 300;
-const UPI_ID = 'colloquium@slrtce';
+const UPI_ID = 'vyapar.171761648790@hdfcbank';
 const ACCOUNT_HOLDER = 'SLRTCE IEEE SB';
 
 export const PaymentPage: React.FC = () => {
@@ -250,7 +252,19 @@ export const PaymentPage: React.FC = () => {
               <span className="font-bold text-sm text-[#0A2A5E] uppercase tracking-wider">Pay Via UPI</span>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Payment QR Code */}
+              <div className="flex flex-col items-center justify-center p-4 bg-white rounded-xl border border-[#C8B89A]/40 shadow-inner">
+                <img
+                  src={paymentQrImg}
+                  alt="Payment QR Code"
+                  className="w-48 sm:w-52 h-auto object-contain rounded-lg border border-gray-200 shadow-sm"
+                />
+                <span className="mt-2 text-[11px] font-semibold text-[#138808] bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 text-center">
+                  Scan QR with GPay / PhonePe / Paytm / Any UPI App
+                </span>
+              </div>
+
               {/* UPI ID with copy */}
               <div className="p-3 rounded-xl bg-[#0A2A5E]/5 border border-[#0A2A5E]/15">
                 <span className="text-[10px] text-gray-500 font-bold uppercase block mb-1">UPI ID</span>

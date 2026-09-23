@@ -373,7 +373,9 @@ export const SubmitPage: React.FC = () => {
       // 3. Save to Firestore (n8n webhook triggers inside saveProjectSubmission only if isUG)
       if (currentUser?.id) {
         await saveProjectSubmission(currentUser.id, {
-          teamName: passport.team || currentUser.name,
+          teamName: passport.team || passport.people[0]?.name || currentUser.name,
+          leaderName: passport.people[0]?.name || currentUser.name,
+          collegeName: passport.people[0]?.institution || '',
           email: currentUser.email,
           track: selectedTrack,
           category: passport.category || currentUser.degree || 'PG',
