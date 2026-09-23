@@ -189,6 +189,10 @@ export const DashboardPage: React.FC = () => {
     color: '#0A2A5E',
   };
 
+  const userDegree = (_user?.degree || '').toUpperCase();
+  const rawCat = (passport.category || userDegree).toUpperCase();
+  const isUG = rawCat.includes('UG') || rawCat.includes('UNDERGRADUATE') || rawCat.includes('DIPLOMA') || passport.category === 'UG';
+
   const isRegistered = !!passport.category && (passport.registered || !!leader.name);
 
   const registrationId = `VIKAS-2026-${(passport.team || leader.name || 'PASS')
@@ -237,25 +241,48 @@ export const DashboardPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Right Section: Conference Countdown Timer (from landing page) + Quick Action Buttons */}
+        {/* Right Section: Customized Submission Deadline Countdown Timer + Quick Action Buttons */}
         <div className="flex flex-col items-start md:items-end gap-3 shrink-0">
-          {/* Tricolor Timer Bar (Matches Landing Page Hero) */}
-          <div className="flex flex-col w-full max-w-full sm:max-w-[320px]">
-            <div className="flex h-8 sm:h-9 w-full rounded-full overflow-hidden shadow-md border border-[#C8B89A]/60">
-              <div className="bg-[#FF9933] flex-1 flex items-center justify-center text-xs sm:text-sm font-bold text-white tracking-wide">
-                {timeLeft.days} D
+          {/* Compact Premium Deadline Countdown Widget */}
+          <div className="bg-[#FAF6EE]/90 backdrop-blur-md border border-[#C8B89A]/80 shadow-sm rounded-2xl p-2 sm:p-2.5 flex items-center justify-between gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-2 pl-1">
+              <div className="w-7 h-7 rounded-xl bg-[#0A2A5E] text-amber-400 flex items-center justify-center shrink-0 shadow-sm">
+                <Clock className="w-3.5 h-3.5" />
               </div>
-              <div className="bg-white flex-1 flex items-center justify-center text-xs sm:text-sm font-bold text-[#0A2A5E] tracking-wide">
-                {timeLeft.hours} H
-              </div>
-              <div className="bg-[#138808] flex-1 flex items-center justify-center text-xs sm:text-sm font-bold text-white tracking-wide">
-                {timeLeft.minutes} M
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#0A2A5E]">
+                    {isUG ? 'PDF Submission Deadline' : 'Abstract Submission Deadline'}
+                  </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] animate-ping" />
+                </div>
+                <span className="text-[9px] font-semibold text-[#5A5A7A]">
+                  INSPIRE Colloquium 2026
+                </span>
               </div>
             </div>
-            <div className="flex w-full mt-1">
-              <div className="flex-1 text-center text-[10px] sm:text-[11px] font-bold text-[#0A2A5E]/80 uppercase tracking-wider pr-1">Days</div>
-              <div className="flex-1 text-center text-[10px] sm:text-[11px] font-bold text-[#0A2A5E]/80 uppercase tracking-wider px-1">Hours</div>
-              <div className="flex-1 text-center text-[10px] sm:text-[11px] font-bold text-[#0A2A5E]/80 uppercase tracking-wider pl-1">Mins</div>
+
+            <div className="flex items-center gap-1.5 bg-[#0A2A5E] px-3 py-1.5 rounded-xl border border-[#0A2A5E] shadow-inner text-white">
+              <div className="flex items-baseline gap-0.5">
+                <span className="font-mono text-sm sm:text-base font-black text-amber-300">
+                  {String(timeLeft.days).padStart(2, '0')}
+                </span>
+                <span className="text-[9px] font-bold text-gray-300 uppercase">d</span>
+              </div>
+              <span className="text-amber-400/80 font-bold text-xs font-mono">:</span>
+              <div className="flex items-baseline gap-0.5">
+                <span className="font-mono text-sm sm:text-base font-black text-amber-300">
+                  {String(timeLeft.hours).padStart(2, '0')}
+                </span>
+                <span className="text-[9px] font-bold text-gray-300 uppercase">h</span>
+              </div>
+              <span className="text-amber-400/80 font-bold text-xs font-mono">:</span>
+              <div className="flex items-baseline gap-0.5">
+                <span className="font-mono text-sm sm:text-base font-black text-amber-300">
+                  {String(timeLeft.minutes).padStart(2, '0')}
+                </span>
+                <span className="text-[9px] font-bold text-gray-300 uppercase">m</span>
+              </div>
             </div>
           </div>
 
