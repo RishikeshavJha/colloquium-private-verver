@@ -432,7 +432,7 @@ export const SubmitPage: React.FC = () => {
         </p>
         <div className="mt-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-300 text-amber-950 text-xs font-bold shadow-2xs">
           <Clock className="w-4 h-4 text-[#FF6B00]" />
-          <span>PPT & Abstract Submission Deadline: 30th Sept 2026, 11:59 PM IST</span>
+          <span>Submission Deadline: 30th Sept 2026, 11:59 PM IST</span>
         </div>
       </div>
 

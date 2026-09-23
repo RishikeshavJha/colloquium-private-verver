@@ -333,7 +333,7 @@ export const DashboardPage: React.FC = () => {
                       ? 'Payment Deadline (Oct 2, 12 PM)'
                       : hasSubmitted
                       ? 'Evaluation Window (Ends Oct 1)'
-                      : 'PPT Submission (Deadline Sept 30)'}
+                      : 'Submission Deadline (Sept 30)'}
                   </span>
                   <span className="w-1.5 h-1.5 rounded-full animate-ping bg-[#FF6B00]" />
                 </div>
@@ -342,7 +342,7 @@ export const DashboardPage: React.FC = () => {
                     ? 'Confirm slot before 12:00 PM'
                     : hasSubmitted
                     ? 'Evaluation till 1st Oct 11:59 PM'
-                    : 'Submit PPT before 30th Sept 11:59 PM'}
+                    : 'Submit before 30th Sept 11:59 PM'}
                 </span>
               </div>
             </div>
