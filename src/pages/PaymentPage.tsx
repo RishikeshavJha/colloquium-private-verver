@@ -352,10 +352,7 @@ export const PaymentPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
-                <strong className="block mb-1">📌 Important: Add remark while paying</strong>
-                Use your Pass ID <span className="font-mono font-bold select-all">{registrationId}</span> as the payment remark / note so we can identify your payment.
-              </div>
+
             </div>
           </div>
 
