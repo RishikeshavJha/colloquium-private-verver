@@ -6,6 +6,9 @@ import {
   ArrowRight,
   Sparkles,
   Users,
+  FileText,
+  CheckCircle2,
+  Clock,
 } from 'lucide-react';
 
 export const GuidelinesPage: React.FC = () => {

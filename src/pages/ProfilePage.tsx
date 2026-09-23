@@ -18,7 +18,7 @@ import {
 
 export const ProfilePage: React.FC = () => {
   const [passport, setPassport] = useState<Passport>(() => loadPassport());
-  const [user, setUser] = useState(() => getAuthUser());
+  const [_user, setUser] = useState(() => getAuthUser());
   const [toast, setToast] = useState(false);
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
   const [showErrorBanner, setShowErrorBanner] = useState(false);

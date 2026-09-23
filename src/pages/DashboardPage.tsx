@@ -34,7 +34,7 @@ const trackThemeImages: Record<string, { image: string; color: string }> = {
 export const DashboardPage: React.FC = () => {
   useInspireBackground('quiet');
   const [passport, setPassport] = useState<Passport>(() => loadPassport());
-  const [user, setUser] = useState(() => getAuthUser());
+  const [_user, setUser] = useState(() => getAuthUser());
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 });
   const [firestoreSubmissions, setFirestoreSubmissions] = useState<(FirestoreSubmission & { id: string })[]>([]);
 

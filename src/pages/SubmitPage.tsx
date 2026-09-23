@@ -47,8 +47,6 @@ export const SubmitPage: React.FC = () => {
   const [existingSubmission, setExistingSubmission] = useState<(FirestoreSubmission & { id: string }) | null>(null);
   const [firestoreLoading, setFirestoreLoading] = useState(false);
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
-  const isUG = passport.category === 'UG';
-
   const category = (passport.category || user?.degree || '').toUpperCase();
   const isUG = category.includes('UG') || category.includes('UNDERGRADUATE') || category === 'DIPLOMA';
 
