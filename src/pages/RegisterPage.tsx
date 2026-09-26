@@ -8,6 +8,7 @@ import {
   validatePerson,
   yearOptionsFor,
   getAuthUser,
+  getRegistrationId,
   isEmailRegistered,
   type Passport,
   type Person,
@@ -637,13 +638,7 @@ export const RegisterPage: React.FC = () => {
     window.scrollTo({ top: 100, behavior: 'smooth' });
   };
 
-  const registrationId = `INSPIRE-2026-${(data.team || data.people[0]?.name || 'PASS')
-    .slice(0, 3)
-    .toUpperCase()}-${Math.abs(
-      (data.people[0]?.email || 'slrtce').split('').reduce((acc, char) => acc + char.charCodeAt(0), 1000)
-    )
-      .toString()
-      .slice(0, 4)}`;
+  const registrationId = getRegistrationId(data, getAuthUser());
 
   const leader = data.people[0] || emptyPerson();
 

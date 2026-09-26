@@ -125,6 +125,41 @@ export const yearOptionsFor = (category: string, courseType?: string) => {
 };
 
 export const WHATSAPP_LINK = 'https://whatsapp.com/channel/0029VbDzr4oFMqrbOY62351F';
+export const BROCHURE_LINK = 'https://drive.google.com/file/d/1VExKvkDSiY0Om6CBQ1GIiDDg5-8-iqED/view?usp=sharing';
+export const PPT_FORMAT_LINK = 'https://docs.google.com/presentation/d/1A5_YzalrQAvdtXd_gSUhaI0QTCkJCIY4/edit?usp=sharing&ouid=114692613106986949056&rtpof=true&sd=true';
+
+/**
+ * Generates a unique, deterministic, collision-resistant Pass ID for every user login.
+ * Format: INSPIRE-2026-XXX-YYYY
+ */
+export function getRegistrationId(
+  passport?: Partial<Passport> | null,
+  user?: AuthUser | null
+): string {
+  const leader = passport?.people?.[0];
+  const rawName = passport?.team || leader?.name || user?.name || 'PASS';
+
+  // 3-character uppercase prefix
+  const cleanPrefix = (rawName.replace(/[^A-Za-z0-9]/g, '') || 'PAS')
+    .slice(0, 3)
+    .toUpperCase()
+    .padEnd(3, 'X');
+
+  // Unique identifier source: prioritize Firebase Auth UID, then email, then phone
+  const rawUniqueKey = (user?.id || leader?.email || user?.email || leader?.mobile || 'inspire-2026').toLowerCase().trim();
+
+  // FNV-1a 32-bit hash with bit shift
+  let h = 0x811c9dc5;
+  for (let i = 0; i < rawUniqueKey.length; i++) {
+    h ^= rawUniqueKey.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+    h = (h << 13) | (h >>> 19);
+  }
+
+  // 4-digit unique numerical code (1000 to 9999)
+  const code = (Math.abs(h) % 9000 + 1000).toString();
+  return `INSPIRE-2026-${cleanPrefix}-${code}`;
+}
 
 export interface AuthUser {
   id: string;

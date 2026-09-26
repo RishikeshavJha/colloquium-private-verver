@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { loadPassport, savePassport, getAuthUser, type Passport, type Abstract } from '../utils/storage';
+import { loadPassport, savePassport, getAuthUser, PPT_FORMAT_LINK, type Passport, type Abstract } from '../utils/storage';
 import { uploadPPTFile, saveProjectSubmission, getUserSubmissions, type FirestoreSubmission } from '../lib/db';
 import { tracks } from '../data/tracks';
 import {
@@ -432,7 +432,7 @@ export const SubmitPage: React.FC = () => {
         </p>
         <div className="mt-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-300 text-amber-950 text-xs font-bold shadow-2xs">
           <Clock className="w-4 h-4 text-[#FF6B00]" />
-          <span>Submission Deadline: 30th Sept 2026, 11:59 PM IST</span>
+          <span>Submission Deadline: 11th Oct 2026, 11:59 PM IST</span>
         </div>
       </div>
 
@@ -671,9 +671,22 @@ export const SubmitPage: React.FC = () => {
         {/* PPT File Dropzone — UG/Diploma only */}
         {isUG && (
           <div>
-            <label className="block text-sm font-extrabold uppercase tracking-wider text-[#0A2A5E] mb-2">
-              Attach Presentation File <span className="text-red-500">* (Mandatory for UG)</span>
-            </label>
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <label className="block text-sm font-extrabold uppercase tracking-wider text-[#0A2A5E]">
+                Attach Presentation File <span className="text-red-500">* (Mandatory for UG)</span>
+              </label>
+              <a
+                href={PPT_FORMAT_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FF6B00] hover:text-[#E65A00] bg-[#FF6B00]/10 hover:bg-[#FF6B00]/20 px-3 py-1 rounded-lg transition-colors border border-[#FF6B00]/30"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Download Official PPT Format</span>
+                <ExternalLink className="w-3 h-3 opacity-70" />
+              </a>
+            </div>
 
             <div
               onDragOver={handleDragOver}

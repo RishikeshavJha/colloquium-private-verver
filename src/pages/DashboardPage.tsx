@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { loadPassport, savePassport, emptyPerson, getAuthUser, WHATSAPP_LINK, type Passport } from '../utils/storage';
+import { loadPassport, savePassport, emptyPerson, getAuthUser, getRegistrationId, WHATSAPP_LINK, BROCHURE_LINK, PPT_FORMAT_LINK, type Passport } from '../utils/storage';
 import { getUserSubmissions, type FirestoreSubmission } from '../lib/db';
-import { tracks } from '../data/tracks';
 import { useInspireBackground } from '../context/InspireBackgroundContext';
 import {
   Upload,
@@ -23,19 +22,9 @@ import {
   ShieldCheck,
   BadgeIndianRupee,
   Star,
+  FileText,
+  Download,
 } from 'lucide-react';
-
-const trackThemeImages: Record<string, { image: string; color: string }> = {
-  'AI & Machine Learning': { image: '/themes/ai_ml.jpg', color: '#1E3A8A' },
-  'Internet of Things': { image: '/themes/iot.jpg', color: '#0F172A' },
-  'Healthcare & MedTech': { image: '/themes/health.jpg', color: '#9F1239' },
-  'Sustainability & Green Technology': { image: '/themes/sustainability.jpg', color: '#138808' },
-  'Cybersecurity & Digital Trust': { image: '/themes/cybersecurity.jpg', color: '#1E40AF' },
-  'Automation': { image: '/themes/automation.jpg', color: '#FF6B00' },
-  'FinTech': { image: '/themes/fintech.jpg', color: '#D97706' },
-  'Blockchain': { image: '/themes/blockchain.jpg', color: '#2563EB' },
-  'Emerging Technologies': { image: '/themes/emerging.jpg', color: '#5B21B6' },
-};
 
 export const DashboardPage: React.FC = () => {
   useInspireBackground('quiet');
@@ -92,9 +81,10 @@ export const DashboardPage: React.FC = () => {
       });
     }
 
-    const pptSubmissionDeadline = new Date('2026-09-30T23:59:59').getTime();
-    const evaluationDeadline = new Date('2026-10-01T23:59:59').getTime();
-    const paymentDeadline = new Date('2026-10-02T12:00:00').getTime();
+    const pptSubmissionDeadline = new Date('2026-10-11T23:59:59').getTime();
+    const evaluationDeadline = new Date('2026-10-13T23:59:59').getTime();
+    const paymentDeadline = new Date('2026-10-14T23:59:59').getTime();
+    const eventDate = new Date('2026-10-17T09:00:00').getTime();
 
     const updateTimer = () => {
       const now = new Date().getTime();
@@ -102,12 +92,12 @@ export const DashboardPage: React.FC = () => {
 
       let target = pptSubmissionDeadline;
       if (currentPassport.abstracts && currentPassport.abstracts.length > 0) {
-        target = evaluationDeadline;
-      }
-      if (currentPassport.category && currentPassport.abstracts && currentPassport.abstracts.length > 0) {
-        // If deadline is after evaluation, target payment deadline
-        if (now > evaluationDeadline && now < paymentDeadline) {
+        if (now < evaluationDeadline) {
+          target = evaluationDeadline;
+        } else if (now < paymentDeadline) {
           target = paymentDeadline;
+        } else {
+          target = eventDate;
         }
       }
 
@@ -174,8 +164,6 @@ export const DashboardPage: React.FC = () => {
 
   const leader = passport.people[0] || emptyPerson();
   const effectiveTrack = passport.track || (firestoreSubmissions[0]?.track) || '';
-  const trackInfo = tracks.find((t) => t.name === effectiveTrack);
-  const trackTheme = trackThemeImages[effectiveTrack] || { image: '/themes/ai_ml.jpg', color: '#0A2A5E' };
   const hasSubmitted = Boolean(
     (passport.abstracts && passport.abstracts.length > 0) ||
     firestoreSubmissions.length > 0
@@ -217,15 +205,12 @@ export const DashboardPage: React.FC = () => {
   };
 
 
+  const categoryStr = (passport.category || _user?.degree || '').toUpperCase();
+  const isUG = categoryStr.includes('UG') || categoryStr.includes('DIPLOMA') || passport.category === 'UG';
+
   const isRegistered = !!passport.category && (passport.registered || !!leader.name);
 
-  const registrationId = `INSPIRE-2026-${(passport.team || leader.name || 'PASS')
-    .slice(0, 3)
-    .toUpperCase()}-${Math.abs(
-    (leader.email || 'slrtce').split('').reduce((acc, char) => acc + char.charCodeAt(0), 1000)
-  )
-    .toString()
-    .slice(0, 4)}`;
+  const registrationId = getRegistrationId(passport, _user);
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12 relative w-full">
@@ -317,20 +302,24 @@ export const DashboardPage: React.FC = () => {
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#0A2A5E]">
-                    {isSelected && payStatus === 'NOT_PAID'
-                      ? 'Payment Deadline (Oct 2, 12 PM)'
+                    {isSelected && payStatus === 'PAID'
+                      ? 'Event Day (Oct 17, 9 AM)'
+                      : isSelected && payStatus === 'NOT_PAID'
+                      ? 'Payment Deadline (Oct 14, 11:59 PM)'
                       : hasSubmitted
-                      ? 'Evaluation Window (Ends Oct 1)'
-                      : 'SUBMISSION (DEADLINE SEPT 30)'}
+                      ? 'Evaluation Results (Oct 13, 11:59 PM)'
+                      : 'SUBMISSION (DEADLINE OCT 11)'}
                   </span>
                   <span className="w-1.5 h-1.5 rounded-full animate-ping bg-[#FF6B00]" />
                 </div>
                 <span className="text-[9px] font-semibold text-[#5A5A7A]">
-                  {isSelected && payStatus === 'NOT_PAID'
-                    ? 'Confirm slot before 12:00 PM'
+                  {isSelected && payStatus === 'PAID'
+                    ? 'Event: 17th Oct 9:00 AM – 5:00 PM'
+                    : isSelected && payStatus === 'NOT_PAID'
+                    ? 'Confirm slot before 14th Oct 11:59 PM'
                     : hasSubmitted
-                    ? 'Evaluation till 1st Oct 11:59 PM'
-                    : 'Submit before 30th Sept 11:59 PM'}
+                    ? 'Evaluation results on 13th Oct 11:59 PM'
+                    : 'Submit before 11th Oct 11:59 PM'}
                 </span>
               </div>
             </div>
@@ -361,6 +350,18 @@ export const DashboardPage: React.FC = () => {
 
           {/* Quick action buttons */}
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+            {isUG && (
+              <a
+                href={PPT_FORMAT_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 bg-[#0A2A5E] hover:bg-[#153e82] text-amber-300 hover:text-amber-200 text-xs font-bold px-3.5 py-3 sm:py-2.5 rounded-xl shadow-md transition-all active:scale-95 min-h-[44px] border border-amber-400/40"
+              >
+                <FileText className="w-3.5 h-3.5 text-amber-400" />
+                <span>PPT Format</span>
+                <ExternalLink className="w-3 h-3 opacity-70" />
+              </a>
+            )}
             <Link
               to="/submit"
               className="inline-flex items-center justify-center gap-2 bg-[#FF6B00] hover:bg-[#E65A00] text-white text-xs font-bold px-4 py-3 sm:py-2.5 rounded-xl shadow-md transition-all active:scale-95 min-h-[44px]"
@@ -430,59 +431,60 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
 
-        {/* Card 2: Research Track with Theme Image (Only when selected) */}
+        {/* Card 2: Official Conference Brochure Download & PPT Format */}
         <div className="bg-[#FCF9F2] border-2 border-[#C8B89A] rounded-xl p-4 sm:p-5 shadow-sm relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Track Domain</span>
-            {effectiveTrack && (
-              <span
-                className="w-3 h-3 rounded-full shadow-sm shrink-0"
-                style={{ backgroundColor: trackInfo?.color || '#0A2A5E' }}
-              />
-            )}
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+              {isUG ? 'Brochure & Format' : 'Official Brochure'}
+            </span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#FF6B00] shadow-2xs" />
           </div>
 
-          {effectiveTrack ? (
-            <>
-              <div className="flex items-center gap-2.5 my-1">
-                <img
-                  src={trackTheme.image}
-                  alt=""
-                  className="w-10 h-10 rounded-lg object-cover border border-[#C8B89A] shrink-0 shadow-xs"
-                />
-                <div>
-                  <h4 className="font-bold text-sm text-[#0A2A5E] line-clamp-1">
-                    {effectiveTrack}
-                  </h4>
-                  <span className="text-[11px] text-[#5A5A7A] block line-clamp-1">
-                    {trackInfo?.short || 'Universal'}
-                  </span>
-                </div>
+          <div className="my-auto py-1">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-lg bg-[#0A2A5E]/10 border border-[#0A2A5E]/20 text-[#0A2A5E] flex items-center justify-center shrink-0">
+                <FileText className="w-4 h-4 text-[#FF6B00]" />
               </div>
-              <div className="mt-2 pt-2 border-t border-[#C8B89A]/30 text-[10px] text-gray-600 font-mono flex items-center justify-between">
-                <span>SDG: {trackInfo?.sdg || 'Universal'}</span>
-                <Link to="/submit" className="text-[#FF6B00] font-bold hover:underline">Change</Link>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="my-auto py-1">
-                <h4 className="font-bold text-sm text-gray-400 italic">
-                  Theme Pending
+              <div>
+                <h4 className="font-bold text-sm text-[#0A2A5E] line-clamp-1">
+                  {isUG ? 'Brochure & PPT Format' : 'INSPIRE 2026 Brochure'}
                 </h4>
-                <span className="text-[11px] text-[#5A5A7A] block mt-0.5 leading-snug">
-                  Select your research theme during submission
+                <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100/80 px-1.5 py-0.2 rounded inline-block">
+                  {isUG ? 'UG / Diploma' : 'PDF Guide'}
                 </span>
               </div>
-              <div className="mt-2 pt-2 border-t border-[#C8B89A]/30 text-[10px] flex items-center justify-between">
-                <span className="text-gray-400 font-medium">Unselected</span>
-                <Link to="/submit" className="text-[#FF6B00] font-bold hover:underline inline-flex items-center gap-0.5">
-                  <span>Select Theme</span>
-                  <ChevronRight className="w-3 h-3" />
-                </Link>
-              </div>
-            </>
-          )}
+            </div>
+            <span className="text-[11px] text-[#5A5A7A] block mt-1 leading-snug">
+              {isUG
+                ? 'Download presentation format template & official brochure.'
+                : 'Download complete event structure, tracks & participation guidelines.'}
+            </span>
+          </div>
+
+          <div className="mt-2 pt-2 border-t border-[#C8B89A]/30 text-[10px] flex items-center justify-between gap-1 flex-wrap">
+            <a
+              href={BROCHURE_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#0A2A5E] font-bold hover:underline inline-flex items-center gap-1 bg-[#0A2A5E]/10 hover:bg-[#0A2A5E]/15 px-2 py-1 rounded-lg transition-colors"
+            >
+              <Download className="w-3 h-3" />
+              <span>Brochure</span>
+              <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+            </a>
+            {isUG && (
+              <a
+                href={PPT_FORMAT_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#FF6B00] font-bold hover:underline inline-flex items-center gap-1 bg-[#FF6B00]/10 hover:bg-[#FF6B00]/20 px-2 py-1 rounded-lg transition-colors"
+              >
+                <FileText className="w-3 h-3" />
+                <span>PPT Format</span>
+                <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+              </a>
+            )}
+          </div>
         </div>
 
         {/* Card 3: Abstract Status */}
@@ -660,8 +662,8 @@ export const DashboardPage: React.FC = () => {
                   <div className="flex items-start gap-3">
                     <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                     <div className="leading-relaxed">
-                      <strong className="font-bold text-amber-950 block mb-0.5">⏰ Action Required: Complete Payment Before 2nd Oct, 12:00 PM (Afternoon)</strong>
-                      Pay the registration fee via UPI or bank transfer and submit your transaction ID + screenshot. <span className="font-bold text-rose-700">Slots not confirmed before Oct 2nd 12:00 PM may be reallocated.</span>
+                      <strong className="font-bold text-amber-950 block mb-0.5">⏰ Action Required: Complete Payment Before 14th Oct, 11:59 PM</strong>
+                      Pay the registration fee via UPI or bank transfer and submit your transaction ID + screenshot. <span className="font-bold text-rose-700">Slots not confirmed before Oct 14th 11:59 PM may be reallocated.</span>
                     </div>
                   </div>
 
@@ -830,7 +832,7 @@ export const DashboardPage: React.FC = () => {
                         </span>
                       </div>
                       <p className="text-xs text-[#5A5A7A] mt-1">
-                        Submit a concise 150–250 word abstract highlighting your research, idea, or proposed work.
+                        Submit a concise 150–250 word abstract before 11th Oct 2026, 11:59 PM IST.
                       </p>
                     </div>
                   </div>
@@ -900,13 +902,13 @@ export const DashboardPage: React.FC = () => {
                         </span>
                       </div>
                       <p className="text-xs text-[#5A5A7A] mt-1">
-                        Review panel is currently evaluating submissions based on problem statement, novelty, and clarity.
+                        Review panel is evaluating submissions. Results will be published on 13th Oct 11:59 PM.
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-xs font-semibold text-amber-900 bg-amber-50/90 px-3 py-2 rounded-lg border border-amber-200">
                     <Clock className="w-3.5 h-3.5 text-amber-600 animate-spin" />
-                    <span>Evaluation in progress. Shortlist announcements will unlock in Stage 3.</span>
+                    <span>Evaluation in progress. Results release on 13th Oct 11:59 PM.</span>
                   </div>
                 </div>
               ) : (
@@ -927,7 +929,7 @@ export const DashboardPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-400 italic">Timeline: Stage 2</span>
+                  <span className="text-xs text-gray-400 italic">Timeline: Stage 2 · Evaluation Ends 13th Oct 11:59 PM</span>
                 </div>
               )}
 
@@ -991,7 +993,7 @@ export const DashboardPage: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <h4 className="font-bold text-sm text-[#0A2A5E]">Shortlist Results</h4>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
-                          Upcoming
+                          13th Oct 11:59 PM
                         </span>
                       </div>
                       <p className="text-xs text-[#5A5A7A] mt-1">
@@ -999,7 +1001,7 @@ export const DashboardPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-400 italic">Unlocks after Evaluation</span>
+                  <span className="text-xs text-gray-400 italic">Evaluation Results Release: 13th Oct 11:59 PM</span>
                 </div>
               )}
 
@@ -1018,7 +1020,7 @@ export const DashboardPage: React.FC = () => {
                         </span>
                       </div>
                       <p className="text-xs text-[#5A5A7A] mt-1 leading-relaxed">
-                        Selected participants must complete the registration fee payment and submit proof within <span className="font-bold text-rose-600">24 hours of selection</span>. Slots not confirmed within this window may be reallocated to the next shortlisted team.
+                        Selected participants must complete the registration fee payment and submit proof before <span className="font-bold text-rose-600">14th Oct 11:59 PM</span>. Slots not confirmed within this window may be reallocated to the next shortlisted team.
                       </p>
                     </div>
                   </div>
@@ -1036,15 +1038,15 @@ export const DashboardPage: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <h4 className="font-bold text-sm text-[#0A2A5E]">Payments (Deadline)</h4>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
-                          Pending Shortlist
+                          14th Oct 11:59 PM
                         </span>
                       </div>
                       <p className="text-xs text-[#5A5A7A] mt-1">
-                        Shortlisted participants complete the registration fee payment before the deadline to confirm their slot.
+                        Shortlisted participants complete the registration fee payment before 14th Oct 11:59 PM to confirm their slot.
                       </p>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-400 italic">Unlocks after Shortlist</span>
+                  <span className="text-xs text-gray-400 italic">Payment Deadline: 14th Oct 11:59 PM</span>
                 </div>
               )}
 
@@ -1058,7 +1060,7 @@ export const DashboardPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <h4 className="font-bold text-sm text-[#0A2A5E]">Main Event</h4>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
-                        Colloquium Day
+                        17th Oct · 9:00 AM - 5:00 PM
                       </span>
                     </div>
                     <p className="text-xs text-[#5A5A7A] mt-1">
@@ -1066,7 +1068,7 @@ export const DashboardPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <span className="text-xs text-gray-400 italic">Offline Presentation & Defense</span>
+                <span className="text-xs text-gray-400 italic">Offline Presentation & Defense · 17th Oct 2026 (9:00 AM – 5:00 PM)</span>
               </div>
 
               {/* Stage 6 */}
@@ -1079,7 +1081,7 @@ export const DashboardPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <h4 className="font-bold text-sm text-[#0A2A5E]">Valedictory</h4>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
-                        Grand Finale
+                        17th Oct · Evening
                       </span>
                     </div>
                     <p className="text-xs text-[#5A5A7A] mt-1">
@@ -1087,7 +1089,7 @@ export const DashboardPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <span className="text-xs text-gray-400 italic">Awards & Closing Ceremony</span>
+                <span className="text-xs text-gray-400 italic">Awards & Closing Ceremony · 17th Oct 2026</span>
               </div>
             </div>
           </div>

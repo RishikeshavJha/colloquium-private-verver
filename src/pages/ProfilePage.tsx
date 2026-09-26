@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { loadPassport, savePassport, emptyPerson, validatePerson, yearOptionsFor, getAuthUser, setAuthUser, type Passport, type Person } from '../utils/storage';
+import { loadPassport, savePassport, emptyPerson, validatePerson, yearOptionsFor, getAuthUser, setAuthUser, getRegistrationId, type Passport, type Person } from '../utils/storage';
 import { saveUserRegistration } from '../lib/db';
 import { tracks } from '../data/tracks';
 import {
@@ -212,13 +212,7 @@ export const ProfilePage: React.FC = () => {
 
   const leader = passport.people[0] || emptyPerson();
 
-  const registrationId = `INSPIRE-2026-${(passport.team || leader.name || 'PASS')
-    .slice(0, 3)
-    .toUpperCase()}-${Math.abs(
-      (leader.email || 'slrtce').split('').reduce((acc, char) => acc + char.charCodeAt(0), 1000)
-    )
-      .toString()
-      .slice(0, 4)}`;
+  const registrationId = getRegistrationId(passport, _user);
 
   const trackInfo = tracks.find((t) => t.name === passport.track);
   const hasSubmitted = Boolean(passport.abstracts && passport.abstracts.length > 0);

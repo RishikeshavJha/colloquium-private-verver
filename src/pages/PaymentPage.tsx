@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { loadPassport, getAuthUser } from '../utils/storage';
+import { loadPassport, getAuthUser, getRegistrationId } from '../utils/storage';
 import { getUserSubmissions, submitPaymentProof, type FirestoreSubmission } from '../lib/db';
 import { useInspireBackground } from '../context/InspireBackgroundContext';
 import {
@@ -44,11 +44,7 @@ export const PaymentPage: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const registrationId = `INSPIRE-2026-${((passport.people?.[0]?.name || passport.team || 'PASS'))
-    .slice(0, 3)
-    .toUpperCase()}-${Math.abs(
-    (passport.people?.[0]?.email || 'slrtce').split('').reduce((acc, char) => acc + char.charCodeAt(0), 1000)
-  ).toString().slice(0, 4)}`;
+  const registrationId = getRegistrationId(passport, user);
 
   useEffect(() => {
     if (!user?.id) { setLoading(false); return; }
@@ -376,8 +372,8 @@ export const PaymentPage: React.FC = () => {
 
           {/* Deadline warning */}
           <div className="p-4 rounded-2xl bg-rose-50 border-2 border-rose-200 text-xs text-rose-900 leading-relaxed">
-            <strong className="text-rose-700 block mb-1">⏰ 24-Hour Deadline</strong>
-            Payment must be completed and proof submitted within <strong>24 hours of your selection notification</strong>. Slots not confirmed in time may be reallocated.
+            <strong className="text-rose-700 block mb-1">⏰ Payment Deadline: 14th Oct 11:59 PM</strong>
+            Payment must be completed and proof submitted before <strong>14th Oct 2026, 11:59 PM IST</strong>. Slots not confirmed in time may be reallocated.
           </div>
         </div>
 
