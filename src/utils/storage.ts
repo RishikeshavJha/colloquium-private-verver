@@ -126,7 +126,7 @@ export const yearOptionsFor = (category: string, courseType?: string) => {
 
 export const WHATSAPP_LINK = 'https://whatsapp.com/channel/0029VbDzr4oFMqrbOY62351F';
 export const BROCHURE_LINK = 'https://drive.google.com/file/d/1VExKvkDSiY0Om6CBQ1GIiDDg5-8-iqED/view?usp=sharing';
-export const PPT_FORMAT_LINK = 'https://docs.google.com/presentation/d/1A5_YzalrQAvdtXd_gSUhaI0QTCkJCIY4/edit?usp=sharing&ouid=114692613106986949056&rtpof=true&sd=true';
+export const PPT_FORMAT_LINK = 'https://docs.google.com/presentation/d/1nNVV869Ey64rKS1B_ynFFKS0F3MEU1fr/edit?usp=sharing&ouid=109976524882330876443&rtpof=true&sd=true';
 
 /**
  * Generates a unique, deterministic, collision-resistant Pass ID for every user login.
