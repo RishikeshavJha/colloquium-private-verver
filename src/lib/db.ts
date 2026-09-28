@@ -277,25 +277,46 @@ export async function saveUserRegistration(
   // Commit all writes atomically
   await batch.commit();
 
-  // Trigger n8n Registration Welcome Email through secure server proxy
+  // Trigger n8n Registration Welcome Email for all categories (UG, PG, PPG, DIPLOMA)
   if (triggerWebhook) {
+    const regWebhookUrl =
+      import.meta.env.VITE_N8N_REGISTRATION_WEBHOOK_URL ||
+      "https://colloquium.app.n8n.cloud/webhook/a132f772-007b-44a7-99f2-f4cec681a637";
+    const n8nSecret =
+      import.meta.env.VITE_N8N_WEBHOOK_SECRET || "mySuperSecret123";
+
+    const payload = {
+      uid,
+      name: data.name,
+      email: data.email,
+      phoneNumber: data.phoneNumber,
+      college: data.college,
+      branch: data.branch,
+      degree: data.degree,
+      year: data.year,
+      teamName: data.teamName,
+      memberEmails: data.memberEmails,
+      teamMembers: data.teamMembers,
+      registrationDateTime: nowIso,
+    };
+
     try {
-      await callWebhookProxy("registration_welcome", {
-        name: data.name,
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        college: data.college,
-        branch: data.branch,
-        degree: data.degree,
-        year: data.year,
-        teamName: data.teamName,
-        memberEmails: data.memberEmails,
-        // Note: uid is derived server-side from the verified ID token
-        // Sending it here is informational only — server ignores it for auth
+      // Direct call to n8n with Bearer token
+      await fetch(regWebhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${n8nSecret}`,
+        },
+        body: JSON.stringify(payload),
       });
-    } catch (err) {
-      // Non-fatal: data is already in Firestore. Log and continue.
-      console.warn("Registration webhook call failed (non-fatal):", err instanceof Error ? err.message : err);
+    } catch (directErr) {
+      console.warn("Direct registration webhook call warning, trying proxy fallback:", directErr);
+      try {
+        await callWebhookProxy("registration_welcome", payload);
+      } catch (proxyErr) {
+        console.warn("Registration webhook call failed (non-fatal):", proxyErr);
+      }
     }
   }
 }
