@@ -367,10 +367,12 @@ export const SubmitPage: React.FC = () => {
     setFirestoreLoading(true);
     try {
       if (isUG) {
-        // Direct multipart upload to n8n (supported by connect-src CSP)
+        // Direct multipart upload to n8n (everything for UG goes to n8n, nothing direct to Firebase)
         const webhookUrl =
           import.meta.env.VITE_N8N_SUBMISSION_UG_WEBHOOK_URL ||
           'https://colloquium.app.n8n.cloud/webhook/upload-pdf-secure-9823';
+        const n8nSecret =
+          import.meta.env.VITE_N8N_WEBHOOK_SECRET || 'mySuperSecret123';
 
         try {
           const formData = new FormData();
@@ -389,27 +391,13 @@ export const SubmitPage: React.FC = () => {
 
           await fetch(webhookUrl, {
             method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${n8nSecret}`,
+            },
             body: formData,
           });
         } catch (webhookErr) {
           console.warn('[UG submit] n8n webhook call warning (non-fatal):', webhookErr);
-        }
-
-        // Save submission record to Firestore
-        try {
-          await saveProjectSubmission(authorizedUid, {
-            teamName: passport.team || passport.people[0]?.name || user?.name || '',
-            leaderName: passport.people[0]?.name || user?.name || '',
-            collegeName: passport.people[0]?.institution || '',
-            email: user?.email || '',
-            track: selectedTrack,
-            category: passport.category || user?.degree || 'UG',
-            problemStatement: title.trim(),
-            solutionSummary: summary.trim(),
-            pptLink: file ? `UG_File_${file.name}` : 'UG_File_Pending',
-          });
-        } catch (fsErr) {
-          console.warn('[UG submit] Firestore save note (non-fatal):', fsErr);
         }
 
         const newAbstract: Abstract = {
