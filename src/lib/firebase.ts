@@ -5,7 +5,7 @@ import { getStorage } from "firebase/storage";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "your_firebase_api_key_here",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDOSSB3OQlPCf4Armvag7k5dNnlGVcdqCU",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "ieee-colloquium.firebaseapp.com",
   databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://ieee-colloquium-default-rtdb.firebaseio.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "ieee-colloquium",
