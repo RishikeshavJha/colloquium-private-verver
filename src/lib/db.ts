@@ -535,17 +535,40 @@ export async function submitPaymentProof(
     _paymentSubmittedAt: serverTimestamp(),
   });
 
-  // 3. Trigger n8n through secure server proxy — single call, storage PATH not download URL
+  // 3. Trigger n8n payment webhook directly with the image & transaction details
+  const paymentWebhookUrl =
+    import.meta.env.VITE_N8N_PAYMENT_WEBHOOK_URL ||
+    "https://colloquium.app.n8n.cloud/webhook/upload-image-secure-9823";
+
   try {
-    await callWebhookProxy("payment_proof", {
-      submissionId,
-      transactionId: transactionId.trim(),
-      screenshotStoragePath: storagePath, // path, not a signed URL
-      submittedAt: nowIST,
+    const formData = new FormData();
+    formData.append("file", screenshotFile, screenshotFile.name);
+    formData.append("image", screenshotFile, screenshotFile.name);
+    formData.append("screenshot", screenshotFile, screenshotFile.name);
+    formData.append("userId", uid);
+    formData.append("submissionId", submissionId);
+    formData.append("transactionId", transactionId.trim());
+    formData.append("screenshotUrl", screenshotUrl);
+    formData.append("screenshotStoragePath", storagePath);
+    formData.append("submittedAt", nowIST);
+
+    await fetch(paymentWebhookUrl, {
+      method: "POST",
+      body: formData,
     });
-  } catch (err) {
-    // Non-fatal: Firestore record is updated. Log for monitoring.
-    console.warn("[payment] Webhook proxy call failed (non-fatal):", err instanceof Error ? err.message : err);
+  } catch (directErr) {
+    console.warn("Direct payment webhook call warning, falling back to proxy:", directErr);
+    try {
+      await callWebhookProxy("payment_proof", {
+        submissionId,
+        transactionId: transactionId.trim(),
+        screenshotStoragePath: storagePath,
+        screenshotUrl,
+        submittedAt: nowIST,
+      });
+    } catch (proxyErr) {
+      console.warn("[payment] Webhook proxy call failed (non-fatal):", proxyErr);
+    }
   }
 
   return { screenshotUrl, storagePath };
