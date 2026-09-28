@@ -203,7 +203,7 @@
     },
     {
       "parameters": {
-        "url": "=https://firestore.googleapis.com/v1/projects/studio-134112252-362bd/databases/(default)/documents/users/{{$json.userId}}/projectSubmissions/?key=AIzaSyCo2vAl7aVSYlslBiljD05SO_2SXbXTY5s",
+        "url": "=https://firestore.googleapis.com/v1/projects/ieee-colloquium/databases/(default)/documents/users/{{$json.userId}}/projectSubmissions/?key=AIzaSyDOSSB3OQlPCf4Armvag7k5dNnlGVcdqCU",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
