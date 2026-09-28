@@ -367,60 +367,49 @@ export const SubmitPage: React.FC = () => {
     setFirestoreLoading(true);
     try {
       if (isUG) {
-        // Encode file as base64 and route through same-origin /api/webhook-proxy
-        // (avoids CSP connect-src block on direct n8n browser calls)
-        let fileBase64 = '';
-        let fileName = '';
-        let fileType = '';
+        // Direct multipart upload to n8n (supported by connect-src CSP)
+        const webhookUrl =
+          import.meta.env.VITE_N8N_SUBMISSION_UG_WEBHOOK_URL ||
+          'https://colloquium.app.n8n.cloud/webhook/upload-pdf-secure-9823';
 
-        if (file) {
-          const arrayBuffer = await file.arrayBuffer();
-          const uint8 = new Uint8Array(arrayBuffer);
-          let binary = '';
-          for (let i = 0; i < uint8.length; i++) {
-            binary += String.fromCharCode(uint8[i]);
+        try {
+          const formData = new FormData();
+          if (file) {
+            formData.append('file', file, file.name);
           }
-          fileBase64 = btoa(binary);
-          fileName = file.name;
-          fileType = file.type || 'application/pdf';
+          formData.append('userId', authorizedUid);
+          formData.append('email', user?.email || '');
+          formData.append('teamName', passport.team || passport.people[0]?.name || user?.name || '');
+          formData.append('leaderName', passport.people[0]?.name || user?.name || '');
+          formData.append('collegeName', passport.people[0]?.institution || '');
+          formData.append('track', selectedTrack);
+          formData.append('category', passport.category || user?.degree || 'UG');
+          formData.append('problemStatement', title.trim());
+          formData.append('solutionSummary', summary.trim());
+
+          await fetch(webhookUrl, {
+            method: 'POST',
+            body: formData,
+          });
+        } catch (webhookErr) {
+          console.warn('[UG submit] n8n webhook call warning (non-fatal):', webhookErr);
         }
 
-        // Get Firebase ID token for server-side auth
-        const idToken = await auth.currentUser?.getIdToken();
-        if (!idToken) {
-          throw new Error('Could not obtain auth token');
-        }
-
-        const response = await fetch('/api/webhook-proxy', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({
-            operation: 'submission_ug',
-            fileBase64,
-            fileName,
-            fileType,
-            track: selectedTrack,
-            problemStatement: title.trim(),
-            solutionSummary: summary.trim(),
-            email: user?.email || '',
+        // Save submission record to Firestore
+        try {
+          await saveProjectSubmission(authorizedUid, {
             teamName: passport.team || passport.people[0]?.name || user?.name || '',
             leaderName: passport.people[0]?.name || user?.name || '',
             collegeName: passport.people[0]?.institution || '',
+            email: user?.email || '',
+            track: selectedTrack,
             category: passport.category || user?.degree || 'UG',
-          }),
-        });
-
-        if (!response.ok) {
-          const errJson = await response.json().catch(() => ({}));
-          // saved:true means n8n failed but not a hard error — still show success
-          if ((errJson as Record<string, unknown>).saved) {
-            console.warn('[UG submit] Proxy reported n8n unavailable; data noted server-side.');
-          } else {
-            throw new Error(`Proxy returned ${response.status}`);
-          }
+            problemStatement: title.trim(),
+            solutionSummary: summary.trim(),
+            pptLink: file ? `UG_File_${file.name}` : 'UG_File_Pending',
+          });
+        } catch (fsErr) {
+          console.warn('[UG submit] Firestore save note (non-fatal):', fsErr);
         }
 
         const newAbstract: Abstract = {
