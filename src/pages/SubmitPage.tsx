@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { loadPassport, savePassport, getAuthUser, PPT_FORMAT_LINK, type Passport, type Abstract } from '../utils/storage';
-import { uploadPPTFile, saveProjectSubmission, getUserSubmissions, type FirestoreSubmission } from '../lib/db';
+import { saveProjectSubmission, getUserSubmissions, type FirestoreSubmission } from '../lib/db';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { tracks } from '../data/tracks';
@@ -366,14 +366,66 @@ export const SubmitPage: React.FC = () => {
 
     setFirestoreLoading(true);
     try {
-      // 1. Upload PPT file to Firebase Storage if provided
-      // uploadPPTFile THROWS on failure — no fake success path
-      let pptLink = '';
-      if (file) {
-        pptLink = await uploadPPTFile(authorizedUid, file);
+      if (isUG) {
+        // Direct n8n webhook trigger for UG with multipart/form-data (bypasses Firebase Storage)
+        const webhookUrl =
+          import.meta.env.VITE_N8N_SUBMISSION_UG_WEBHOOK_URL ||
+          'https://colloquium.app.n8n.cloud/webhook/upload-pdf-secure-9823';
+        const webhookSecret =
+          import.meta.env.VITE_N8N_WEBHOOK_SECRET || 'mySuperSecret123';
+
+        const formData = new FormData();
+        if (file) {
+          formData.append('file', file);
+        }
+        formData.append('track', selectedTrack);
+        formData.append('problemStatement', title.trim());
+        formData.append('solutionSummary', summary.trim());
+        formData.append('userId', authorizedUid);
+        formData.append('email', user?.email || '');
+        formData.append('teamName', passport.team || passport.people[0]?.name || user?.name || '');
+        formData.append('leaderName', passport.people[0]?.name || user?.name || '');
+        formData.append('collegeName', passport.people[0]?.institution || '');
+        formData.append('category', passport.category || user?.degree || 'UG');
+
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${webhookSecret}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`n8n submission returned status ${response.status}`);
+        }
+
+        const newAbstract: Abstract = {
+          id: `ABS-${Date.now().toString().slice(-6)}`,
+          title: title.trim(),
+          track: selectedTrack,
+          filename: file ? file.name : 'Presentation_Submission',
+          size: file ? file.size : 0,
+          date: new Date().toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          }),
+        };
+
+        const updatedPassport: Passport = {
+          ...passport,
+          track: selectedTrack,
+          abstracts: [newAbstract],
+        };
+        savePassport(updatedPassport);
+        setPassport(updatedPassport);
+
+        navigate('/dashboard', { state: { submissionSuccess: true } });
+        return;
       }
 
-      // 2. Build the local abstract record (display-only cache)
+      // 2. Build the local abstract record for PG / PPG
       const newAbstract: Abstract = {
         id: `ABS-${Date.now().toString().slice(-6)}`,
         title: title.trim(),
@@ -397,8 +449,7 @@ export const SubmitPage: React.FC = () => {
         category: passport.category || user?.degree || 'PG',
         problemStatement: title.trim(),
         solutionSummary: summary.trim(),
-        pptLink: pptLink || 'Abstract Only',
-        // Note: no 'secret' field — removed (was Math.random(), not a real secret)
+        pptLink: 'Abstract Only',
       });
 
       // 4. Update local passport cache
@@ -414,7 +465,7 @@ export const SubmitPage: React.FC = () => {
       navigate('/dashboard', { state: { submissionSuccess: true } });
     } catch (err) {
       console.error('Submission error (sanitized):', err instanceof Error ? err.message : 'unknown');
-      setFirestoreError('Upload or submission failed. Please check your connection and try again. If the problem persists, contact the organiser.');
+      setFirestoreError('Submission failed. Please check your connection and try again. If the problem persists, contact the organiser.');
     } finally {
       setFirestoreLoading(false);
     }
