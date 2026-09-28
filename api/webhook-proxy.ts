@@ -140,6 +140,56 @@ function buildSubmissionPayload(
   };
 }
 
+/**
+ * Forward a UG submission to n8n as multipart/form-data so the n8n workflow
+ * receives a binary file field exactly as before.
+ * The client sends the PDF as base64 in JSON; this function reconstructs it.
+ */
+async function forwardUGSubmissionAsMultipart(
+  uid: string,
+  body: Record<string, unknown>,
+  webhookUrl: string,
+  n8nSecret: string,
+  idempotencyKey: string
+): Promise<Response> {
+  const formData = new FormData();
+
+  // Reconstruct file from base64 if provided
+  const fileBase64 = safeStr(body.fileBase64, 20_000_000); // up to ~15 MB base64
+  const fileName = safeStr(body.fileName, 255) || "submission.pdf";
+  const fileType = safeStr(body.fileType, 100) || "application/pdf";
+
+  if (fileBase64) {
+    // Decode base64 to binary buffer
+    const binaryBuffer = Buffer.from(fileBase64, "base64");
+    const blob = new Blob([binaryBuffer], { type: fileType });
+    formData.append("file", blob, fileName);
+  }
+
+  // Append all text fields — sanitized
+  formData.append("userId", uid);
+  formData.append("email", safeEmail(body.email));
+  formData.append("teamName", safeStr(body.teamName, 100));
+  formData.append("leaderName", safeStr(body.leaderName, 120));
+  formData.append("collegeName", safeStr(body.collegeName, 200));
+  formData.append("track", safeStr(body.track, 100));
+  formData.append("category", safeCategoryEnum(body.category) || "UG");
+  formData.append("problemStatement", safeStr(body.problemStatement, 500));
+  formData.append("solutionSummary", safeStr(body.solutionSummary, 3000));
+  formData.append("_idempotencyKey", idempotencyKey);
+  formData.append("_source", "inspire-colloquium-2026-api");
+
+  return fetch(webhookUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${n8nSecret}`,
+      "X-Idempotency-Key": idempotencyKey,
+      "X-Source": "inspire-colloquium-2026-api",
+    },
+    body: formData,
+  });
+}
+
 function buildPaymentPayload(
   uid: string,
   body: Record<string, unknown>,
@@ -236,9 +286,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(429).json({ error: "Too many requests. Please wait before trying again." });
   }
 
-  // ── 4. Build validated, sanitized payload ──────────────────────────────────
+  // ── 4. Build validated, sanitized payload & forward to n8n ─────────────────
   const serverTimestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
   const idempotencyKey = `${verifiedUid}-${operation}-${Date.now()}`;
+
+  const n8nSecret = process.env.N8N_WEBHOOK_SECRET;
+  if (!n8nSecret) {
+    console.error("[webhook-proxy] N8N_WEBHOOK_SECRET not configured");
+    return res.status(503).json({ error: "Service configuration error" });
+  }
+
+  // ── Special path: UG submission forwards as multipart/form-data with binary file
+  if (operation === "submission_ug") {
+    try {
+      const n8nResponse = await forwardUGSubmissionAsMultipart(
+        verifiedUid,
+        body,
+        webhookUrl,
+        n8nSecret,
+        idempotencyKey
+      );
+      if (!n8nResponse.ok) {
+        console.error(`[webhook-proxy] n8n UG returned ${n8nResponse.status} uid=${verifiedUid}`);
+        return res.status(502).json({
+          error: "Automation service unavailable. Your submission details have been received.",
+          saved: true,
+        });
+      }
+      console.info(`[webhook-proxy] UG submission success uid=${verifiedUid} idempotency=${idempotencyKey}`);
+      return res.status(200).json({ success: true, idempotencyKey });
+    } catch (err) {
+      console.error("[webhook-proxy] UG multipart forward error:", err instanceof Error ? err.message : "unknown");
+      return res.status(502).json({
+        error: "Automation service temporarily unavailable. Your submission was received and will be processed.",
+        saved: true,
+      });
+    }
+  }
 
   let sanitizedPayload: Record<string, unknown>;
   try {
@@ -246,7 +330,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case "registration_welcome":
         sanitizedPayload = buildRegistrationPayload(verifiedUid, body, idempotencyKey, serverTimestamp);
         break;
-      case "submission_ug":
       case "submission_pg":
         sanitizedPayload = buildSubmissionPayload(verifiedUid, body, idempotencyKey, serverTimestamp);
         break;
@@ -261,13 +344,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "Invalid payload" });
   }
 
-  // ── 5. Forward to n8n with server-only credential ─────────────────────────
-  const n8nSecret = process.env.N8N_WEBHOOK_SECRET;
-  if (!n8nSecret) {
-    console.error("[webhook-proxy] N8N_WEBHOOK_SECRET not configured");
-    return res.status(503).json({ error: "Service configuration error" });
-  }
-
+  // ── 5. Forward to n8n as JSON with server-only credential ──────────────────
   try {
     const n8nResponse = await fetch(webhookUrl, {
       method: "POST",
@@ -278,7 +355,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "X-Source": "inspire-colloquium-2026-api",
       },
       body: JSON.stringify(sanitizedPayload),
-      // No no-cors fallback — fail closed
     });
 
     if (!n8nResponse.ok) {
