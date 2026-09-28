@@ -19,6 +19,10 @@ dist-ssr
 .env.*
 !.env.example
 
+# ─── n8n workflow configs (contain hardcoded API keys) ───────────────────────
+PPT\ Submission.json
+*.n8n.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
