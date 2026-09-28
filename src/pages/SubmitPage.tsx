@@ -50,6 +50,8 @@ export const SubmitPage: React.FC = () => {
   const [existingSubmission, setExistingSubmission] = useState<(FirestoreSubmission & { id: string }) | null>(null);
   const [firestoreLoading, setFirestoreLoading] = useState(false);
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
+  // Must be declared here (before any early returns) to obey React Rules of Hooks
+  const [selectedTrack, setSelectedTrack] = useState<string>(() => passport.track || '');
   const navigate = useNavigate();
   const category = (passport.category || user?.degree || '').toUpperCase();
   const isUG = category.includes('UG') || category.includes('UNDERGRADUATE') || category === 'DIPLOMA';
@@ -269,7 +271,6 @@ export const SubmitPage: React.FC = () => {
     );
   }
 
-  const [selectedTrack, setSelectedTrack] = useState<string>(() => passport.track || '');
   const trackInfo = tracks.find((t) => t.name === selectedTrack);
   const currentTrackTheme = selectedTrack && trackThemeImages[selectedTrack] ? trackThemeImages[selectedTrack] : null;
 
