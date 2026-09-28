@@ -456,9 +456,14 @@ export async function saveProjectSubmission(
     categoryUpper === "DIPLOMA";
 
   const operation = isUG ? "submission_ug" : "submission_pg";
+  const pgWebhookUrl =
+    import.meta.env.VITE_N8N_SUBMISSION_PG_WEBHOOK_URL ||
+    "https://colloquium.app.n8n.cloud/webhook/673fc1d6-70ef-45dc-9529-4c07dd43cae7";
+  const n8nSecret =
+    import.meta.env.VITE_N8N_WEBHOOK_SECRET || "mySuperSecret123";
 
-  // Trigger n8n through secure server proxy (fire-and-forget, non-blocking)
-  callWebhookProxy(operation, {
+  const payload = {
+    uid,
     submissionId,
     email: data.email,
     teamName: data.teamName,
@@ -469,11 +474,24 @@ export async function saveProjectSubmission(
     problemStatement: data.problemStatement,
     solutionSummary: data.solutionSummary,
     pptLink: data.pptLink,
-    // uid derived server-side from Firebase ID token
-  }).catch((err) => {
-    // Non-fatal: data is in Firestore; log for monitoring
-    console.warn("[submission] Webhook proxy call failed (non-fatal):", err instanceof Error ? err.message : err);
-  });
+    createdAtIST: istString,
+  };
+
+  try {
+    await fetch(pgWebhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${n8nSecret}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (directErr) {
+    console.warn("Direct PG/PPG webhook warning, falling back to proxy:", directErr);
+    callWebhookProxy(operation, payload).catch((err) => {
+      console.warn("[submission] Webhook proxy call failed (non-fatal):", err instanceof Error ? err.message : err);
+    });
+  }
 
   return submissionId;
 }
