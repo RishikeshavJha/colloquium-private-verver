@@ -282,8 +282,6 @@ export async function saveUserRegistration(
     const regWebhookUrl =
       import.meta.env.VITE_N8N_REGISTRATION_WEBHOOK_URL ||
       "https://colloquium.app.n8n.cloud/webhook/a132f772-007b-44a7-99f2-f4cec681a637";
-    const n8nSecret =
-      import.meta.env.VITE_N8N_WEBHOOK_SECRET || "mySuperSecret123";
 
     const payload = {
       uid,
@@ -301,12 +299,11 @@ export async function saveUserRegistration(
     };
 
     try {
-      // Direct call to n8n with Bearer token
+      // Direct call to n8n webhook (no secret required for registration)
       await fetch(regWebhookUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${n8nSecret}`,
         },
         body: JSON.stringify(payload),
       });
@@ -459,8 +456,6 @@ export async function saveProjectSubmission(
   const pgWebhookUrl =
     import.meta.env.VITE_N8N_SUBMISSION_PG_WEBHOOK_URL ||
     "https://colloquium.app.n8n.cloud/webhook/673fc1d6-70ef-45dc-9529-4c07dd43cae7";
-  const n8nSecret =
-    import.meta.env.VITE_N8N_WEBHOOK_SECRET || "mySuperSecret123";
 
   const payload = {
     uid,
@@ -482,7 +477,6 @@ export async function saveProjectSubmission(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${n8nSecret}`,
       },
       body: JSON.stringify(payload),
     });
