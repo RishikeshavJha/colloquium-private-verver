@@ -9,7 +9,7 @@ const firebaseConfig = {
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "ieee-colloquium.firebaseapp.com",
   databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://ieee-colloquium-default-rtdb.firebaseio.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "ieee-colloquium",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "ieee-colloquium.firebasestorage.app",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "ieee-colloquium.appspot.com",
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "914616555571",
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:914616555571:web:bbb428406970d9596a2b46",
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-XTXEM3XYLJ",
