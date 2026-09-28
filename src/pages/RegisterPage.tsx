@@ -8,6 +8,7 @@ import {
   validatePerson,
   yearOptionsFor,
   getAuthUser,
+  setAuthUser,
   getRegistrationId,
   isEmailRegistered,
   type Passport,
@@ -15,7 +16,7 @@ import {
   type AuthUser,
 } from '../utils/storage';
 import { saveUserRegistration, getUserDoc, getTeamMembers, type FirestoreTeamMember } from '../lib/db';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
 import CommunityQR from '../components/CommunityQR';
 import { GoogleSvg } from '../components/GoogleAuthModal';
@@ -94,6 +95,16 @@ export const RegisterPage: React.FC = () => {
   const [, setAuthUserState] = useState<AuthUser | null>(() => getAuthUser());
   const [entranceLoading, setEntranceLoading] = useState<boolean>(false);
   const [entranceError, setEntranceError] = useState<string>('');
+  // firebaseUid is the authoritative identity for all Firestore writes
+  const [firebaseUid, setFirebaseUid] = useState<string | null>(() => auth.currentUser?.uid || null);
+
+  // Subscribe to real Firebase Auth state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setFirebaseUid(firebaseUser?.uid || null);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleDirectGoogleSignIn = async () => {
     setEntranceLoading(true);
@@ -130,6 +141,7 @@ export const RegisterPage: React.FC = () => {
   useInspireBackground(stepDensity);
 
   const handleAuthSuccess = async (user: AuthUser) => {
+    setAuthUser(user);
     setAuthUserState(user);
 
     // Check Firestore to see if user data already exists in database
@@ -517,15 +529,16 @@ export const RegisterPage: React.FC = () => {
         }));
 
         // ── Save to Firestore ─────────────────────────────────────────────
-        const currentUser = getAuthUser();
-        if (currentUser?.id) {
+        // Use Firebase Auth UID — never trust localStorage alone
+        const authorizedUid = firebaseUid;
+        if (authorizedUid) {
           setFirestoreSaving(true);
           setFirestoreError('');
           try {
             const leader = finalPeople[0];
             const members: FirestoreTeamMember[] = finalPeople.slice(1).map((p) => ({
               id: '',
-              teamLeaderId: currentUser.id,
+              teamLeaderId: authorizedUid,
               name: p.name,
               email: p.email,
               phoneNumber: p.mobile,
@@ -537,7 +550,7 @@ export const RegisterPage: React.FC = () => {
               linkedinProfileUrl: p.linkedin || '',
             }));
 
-            await saveUserRegistration(currentUser.id, {
+            await saveUserRegistration(authorizedUid, {
               name: leader.name,
               email: leader.email,
               phoneNumber: leader.mobile,
@@ -553,7 +566,7 @@ export const RegisterPage: React.FC = () => {
               teamMembers: members,
             });
           } catch (err) {
-            console.error('Firestore save error:', err);
+            console.error('Firestore save error (sanitized):', err instanceof Error ? err.message : 'unknown');
             setFirestoreError('Registration saved locally. Firestore sync will retry on next login.');
           } finally {
             setFirestoreSaving(false);
@@ -575,12 +588,13 @@ export const RegisterPage: React.FC = () => {
         window.scrollTo({ top: 120, behavior: 'smooth' });
 
         // ── Trigger n8n Welcome Email Webhook ONCE upon completing registration ──
-        const currentUser = getAuthUser();
-        if (currentUser?.id) {
+        // Use Firebase Auth UID — never trust localStorage alone
+        const authorizedUid2 = firebaseUid;
+        if (authorizedUid2) {
           const leader = data.people[0] || emptyPerson();
           const members: FirestoreTeamMember[] = data.people.slice(1).map((p) => ({
             id: '',
-            teamLeaderId: currentUser.id,
+            teamLeaderId: authorizedUid2,
             name: p.name,
             email: p.email,
             phoneNumber: p.mobile,
@@ -593,7 +607,7 @@ export const RegisterPage: React.FC = () => {
           }));
 
           saveUserRegistration(
-            currentUser.id,
+            authorizedUid2,
             {
               name: leader.name,
               email: leader.email,
@@ -610,7 +624,7 @@ export const RegisterPage: React.FC = () => {
               teamMembers: members,
             },
             true // triggerWebhook = true ONLY on step 4 -> step 5 completion!
-          ).catch((err) => console.error('Webhook trigger error on registration completion:', err));
+          ).catch((err) => console.warn('Webhook trigger error on registration completion (non-fatal):', err instanceof Error ? err.message : 'unknown'));
         }
 
         setTimeout(() => {

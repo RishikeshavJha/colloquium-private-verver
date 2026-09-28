@@ -1,0 +1,241 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // Helper functions
+    // =========================================================================
+
+    // True only when a real, valid Firebase ID token is present
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // True when the authenticated UID matches the given uid
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // True when the user has the 'admin' custom claim
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    // True when the user has the 'evaluator' custom claim
+    function isEvaluator() {
+      return isAuthenticated() && (request.auth.token.evaluator == true || isAdmin());
+    }
+
+    // True when the user has the 'payment_verifier' custom claim
+    function isPaymentVerifier() {
+      return isAuthenticated() && (request.auth.token.payment_verifier == true || isAdmin());
+    }
+
+    // String length validation
+    function strLen(field, maxLen) {
+      return field is string && field.size() <= maxLen;
+    }
+
+    // Optional string length validation (also allows field to be absent)
+    function optStrLen(data, fieldName, maxLen) {
+      return !(fieldName in data) || (data[fieldName] is string && data[fieldName].size() <= maxLen);
+    }
+
+    // Check that a field has not changed between resource.data and request.resource.data
+    function unchanged(fieldName) {
+      return resource.data[fieldName] == request.resource.data[fieldName];
+    }
+
+    // Check that a field has not changed OR was not present in the old document
+    function unchangedOrNew(fieldName) {
+      return !(fieldName in resource.data) || resource.data[fieldName] == request.resource.data[fieldName];
+    }
+
+    // =========================================================================
+    // Administrative / server-only fields — NEVER writable by participants
+    // These fields must remain unchanged on any client update.
+    // =========================================================================
+    function adminFieldsUnchanged() {
+      return (
+        // Evaluation fields
+        unchangedOrNew('evaluationStatus') &&
+        unchangedOrNew('evaluatedBy') &&
+        unchangedOrNew('evaluatedAt') &&
+        unchangedOrNew('evaluatorRemarks') &&
+        // Payment verification fields
+        unchangedOrNew('paymentVerifiedBy') &&
+        unchangedOrNew('paymentVerifiedAt') &&
+        // Ownership and creation fields
+        unchangedOrNew('userId') &&
+        unchangedOrNew('_createdAt')
+      );
+    }
+
+    // Participant may only transition paymentStatus to UNDER_REVIEW from NOT_PAID
+    // (setting PAID or FAILED is admin-only)
+    function validPaymentStatusTransition() {
+      let old = resource.data.get('paymentStatus', 'NOT_PAID');
+      let next = request.resource.data.get('paymentStatus', old);
+      // Allow: no change, or NOT_PAID → UNDER_REVIEW only
+      return next == old || (old == 'NOT_PAID' && next == 'UNDER_REVIEW');
+    }
+
+    // =========================================================================
+    // /users/{uid}
+    // =========================================================================
+    match /users/{uid} {
+
+      // A user can read their own profile. Admins can read any profile.
+      allow read: if isOwner(uid) || isAdmin();
+
+      // A user can create their own profile document (registration).
+      // Validates required fields and lengths.
+      allow create: if isOwner(uid)
+        && request.resource.data.id == uid           // id must match the document path
+        && strLen(request.resource.data.name, 120)
+        && strLen(request.resource.data.email, 320)
+        && strLen(request.resource.data.phoneNumber, 20)
+        && strLen(request.resource.data.college, 200)
+        && strLen(request.resource.data.branch, 100)
+        && strLen(request.resource.data.degree, 20)
+        && strLen(request.resource.data.year, 30)
+        && optStrLen(request.resource.data, 'teamName', 100)
+        && optStrLen(request.resource.data, 'githubProfileUrl', 500)
+        && optStrLen(request.resource.data, 'linkedinProfileUrl', 500)
+        && request.resource.data.memberEmails is list
+        && request.resource.data.memberEmails.size() <= 10;
+
+      // A user can update their own profile — but may NOT change id or email.
+      // (Email changes must go through re-authentication.)
+      allow update: if isOwner(uid)
+        && unchanged('id')
+        && unchanged('email')
+        && strLen(request.resource.data.name, 120)
+        && strLen(request.resource.data.phoneNumber, 20)
+        && strLen(request.resource.data.college, 200)
+        && strLen(request.resource.data.branch, 100)
+        && strLen(request.resource.data.degree, 20)
+        && strLen(request.resource.data.year, 30)
+        && optStrLen(request.resource.data, 'teamName', 100)
+        && optStrLen(request.resource.data, 'githubProfileUrl', 500)
+        && optStrLen(request.resource.data, 'linkedinProfileUrl', 500);
+
+      // Only admins can delete user documents.
+      allow delete: if isAdmin();
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // /users/{uid}/teamMembers/{memberId}
+      // ═══════════════════════════════════════════════════════════════════════
+      match /teamMembers/{memberId} {
+
+        allow read: if isOwner(uid) || isAdmin();
+
+        allow create: if isOwner(uid)
+          && request.resource.data.teamLeaderId == uid
+          && strLen(request.resource.data.name, 120)
+          && strLen(request.resource.data.email, 320)
+          && strLen(request.resource.data.phoneNumber, 20)
+          && strLen(request.resource.data.college, 200)
+          && strLen(request.resource.data.branch, 100)
+          && optStrLen(request.resource.data, 'linkedinProfileUrl', 500);
+
+        allow update: if isOwner(uid)
+          && unchanged('teamLeaderId')
+          && strLen(request.resource.data.name, 120)
+          && strLen(request.resource.data.email, 320)
+          && strLen(request.resource.data.phoneNumber, 20)
+          && strLen(request.resource.data.college, 200)
+          && strLen(request.resource.data.branch, 100)
+          && optStrLen(request.resource.data, 'linkedinProfileUrl', 500);
+
+        // Only the owner or admins can delete team members
+        allow delete: if isOwner(uid) || isAdmin();
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // /users/{uid}/projectSubmissions/{submissionId}
+      // ═══════════════════════════════════════════════════════════════════════
+      match /projectSubmissions/{submissionId} {
+
+        // Owner can read their submissions. Evaluators and admins can also read.
+        allow read: if isOwner(uid) || isEvaluator() || isAdmin();
+
+        // Create a new submission — participant-controlled fields only.
+        // Administrative fields are initialized to safe defaults.
+        allow create: if isOwner(uid)
+          && request.resource.data.userId == uid
+          && strLen(request.resource.data.teamName, 100)
+          && strLen(request.resource.data.email, 320)
+          && strLen(request.resource.data.track, 100)
+          && strLen(request.resource.data.category, 20)
+          && strLen(request.resource.data.problemStatement, 500)
+          && strLen(request.resource.data.solutionSummary, 3000)
+          && strLen(request.resource.data.pptLink, 2000)
+          // Enforce safe initial values for administrative fields
+          && request.resource.data.paymentStatus == 'NOT_PAID'
+          && request.resource.data.evaluationStatus == 'PENDING'
+          && request.resource.data.evaluatedBy == ''
+          && request.resource.data.evaluatedAt == ''
+          && request.resource.data.evaluatorRemarks == ''
+          && request.resource.data.paymentVerifiedBy == ''
+          && request.resource.data.paymentVerifiedAt == ''
+          && request.resource.data.paymentTransactionId == '';
+
+        // Update — participant can only modify editable fields.
+        // Administrative fields must remain unchanged.
+        allow update: if isOwner(uid)
+          && adminFieldsUnchanged()
+          && validPaymentStatusTransition()
+          && unchanged('userId')
+          && strLen(request.resource.data.teamName, 100)
+          && strLen(request.resource.data.email, 320)
+          && strLen(request.resource.data.track, 100)
+          && strLen(request.resource.data.category, 20)
+          && strLen(request.resource.data.problemStatement, 500)
+          && strLen(request.resource.data.solutionSummary, 3000)
+          && strLen(request.resource.data.pptLink, 2000)
+          && optStrLen(request.resource.data, 'paymentTransactionId', 100)
+          && optStrLen(request.resource.data, 'paymentScreenshotUrl', 2000);
+
+        // Evaluators can update evaluation fields only.
+        allow update: if isEvaluator()
+          && unchanged('userId')
+          && unchanged('paymentStatus')
+          && unchanged('paymentVerifiedBy')
+          && unchanged('paymentVerifiedAt')
+          && unchanged('paymentTransactionId')
+          && unchanged('paymentScreenshotUrl')
+          && strLen(request.resource.data.get('evaluatorRemarks', ''), 2000);
+
+        // Payment verifiers can update payment fields only.
+        allow update: if isPaymentVerifier()
+          && unchanged('userId')
+          && unchanged('evaluationStatus')
+          && unchanged('evaluatedBy')
+          && unchanged('evaluatedAt')
+          && unchanged('evaluatorRemarks')
+          && (request.resource.data.paymentStatus == 'PAID'
+              || request.resource.data.paymentStatus == 'FAILED'
+              || request.resource.data.paymentStatus == 'UNDER_REVIEW'
+              || request.resource.data.paymentStatus == 'NOT_PAID');
+
+        // Only admins can delete submissions.
+        allow delete: if isAdmin();
+      }
+    }
+
+    // =========================================================================
+    // Administrative collections — only accessible with admin custom claim
+    // =========================================================================
+    match /adminConfig/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // =========================================================================
+    // Deny all other access by default
+    // =========================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

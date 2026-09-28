@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { loadPassport, getAuthUser, getRegistrationId } from '../utils/storage';
 import { getUserSubmissions, submitPaymentProof, type FirestoreSubmission } from '../lib/db';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { useInspireBackground } from '../context/InspireBackgroundContext';
 import {
   CreditCard,
@@ -28,10 +30,12 @@ const ACCOUNT_HOLDER = 'SLRTCE IEEE SB';
 export const PaymentPage: React.FC = () => {
   useInspireBackground('quiet');
   const passport = loadPassport();
-  const user = getAuthUser();
+  // Use localStorage cache for display only — auth is verified via Firebase Auth state
+  const cachedUser = getAuthUser();
 
   const [selectedSubmission, setSelectedSubmission] = useState<(FirestoreSubmission & { id: string }) | null>(null);
   const [loading, setLoading] = useState(true);
+  const [firebaseUid, setFirebaseUid] = useState<string | null>(null);
 
   // Form state
   const [txnId, setTxnId] = useState('');
@@ -44,19 +48,30 @@ export const PaymentPage: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const registrationId = getRegistrationId(passport, user);
+  const registrationId = getRegistrationId(passport, cachedUser);
 
+  // Resolve UID from real Firebase Auth state — never from localStorage alone
   useEffect(() => {
-    if (!user?.id) { setLoading(false); return; }
-    getUserSubmissions(user.id).then(subs => {
-      const sel = subs.find(s => s.evaluationStatus === 'SELECTED');
-      setSelectedSubmission(sel || null);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setFirebaseUid(firebaseUser.uid);
+        getUserSubmissions(firebaseUser.uid).then(subs => {
+          const sel = subs.find(s => s.evaluationStatus === 'SELECTED');
+          setSelectedSubmission(sel || null);
+          setLoading(false);
+        }).catch(() => setLoading(false));
+      } else {
+        setFirebaseUid(null);
+        setLoading(false);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   const payStatus = selectedSubmission?.paymentStatus || 'NOT_PAID';
-  const isUnlocked = !!passport.registered;
+  // isUnlocked: requires both localStorage registration flag AND real Firebase Auth UID
+  // A localStorage-only spoof cannot proceed because firebaseUid is null for unauthenticated users
+  const isUnlocked = !!passport.registered && !!firebaseUid;
 
   // ── Guard: not registered ───────────────────────────────────────────────────
   if (!isUnlocked) {
@@ -138,55 +153,27 @@ export const PaymentPage: React.FC = () => {
   }
 
   // ── Submit handler ──────────────────────────────────────────────────────────
-  const N8N_WEBHOOK = 'https://your-n8n-instance.cloud/webhook/your-payment-webhook-id';
-
   const handleSubmit = async () => {
     if (!txnId.trim()) { setError('Please enter your Transaction / UTR ID.'); return; }
     if (!screenshot) { setError('Please upload a screenshot of your payment.'); return; }
-    if (!user?.id || !selectedSubmission?.id) { setError('Session error. Please refresh and try again.'); return; }
+    // Use Firebase-verified UID — not localStorage-cached user.id
+    if (!firebaseUid || !selectedSubmission?.id) { setError('Session error. Please sign in again and retry.'); return; }
     setSubmitting(true);
     setError('');
     try {
-      // 1. Save to Firestore + upload screenshot to Storage
-      const screenshotUrl = await submitPaymentProof(user.id, selectedSubmission.id, txnId, screenshot);
-
-      // 2. Fire-and-forget webhook — send image file and Authorization Bearer token
-      const wh = new FormData();
-      wh.append('file', screenshot);
-      wh.append('image', screenshot);
-      wh.append('screenshot', screenshot);
-      wh.append('secret', 'your_n8n_bearer_secret_here');
-      wh.append('userId', user.id);
-      wh.append('uid', user.id);
-      wh.append('email', user.email || passport.people?.[0]?.email || '');
-      wh.append('teamName', passport.team || '');
-      wh.append('category', passport.category || '');
-      wh.append('registrationId', registrationId);
-      wh.append('submissionId', selectedSubmission.id);
-      wh.append('transactionId', txnId.trim());
-      wh.append('screenshotUrl', screenshotUrl);
-      wh.append('track', selectedSubmission.track || '');
-      wh.append('submittedAt', new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
-
-      fetch(N8N_WEBHOOK, {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer your_n8n_bearer_secret_here',
-        },
-        body: wh,
-      }).catch((err) => {
-        console.warn('Standard webhook fetch failed, attempting fallback:', err);
-        fetch(N8N_WEBHOOK, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: wh,
-        }).catch((e) => console.warn('n8n webhook fallback (non-fatal):', e));
-      });
+      // Upload screenshot + update Firestore + trigger n8n proxy (all in one call)
+      // submitPaymentProof THROWS on upload failure — no fake success path
+      await submitPaymentProof(
+        firebaseUid, // server-verified UID
+        selectedSubmission.id,
+        txnId,
+        screenshot,
+      );
 
       setSubmitted(true);
     } catch (err) {
-      console.error('Payment error:', err);
-      setError('Failed to submit. Please try again or contact the organiser.');
+      console.error('Payment submission error (sanitized):', err instanceof Error ? err.message : 'unknown');
+      setError('Failed to submit your payment proof. Please check your connection and try again, or contact the organiser.');
     } finally {
       setSubmitting(false);
     }

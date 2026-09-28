@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { loadPassport, savePassport, getAuthUser, PPT_FORMAT_LINK, type Passport, type Abstract } from '../utils/storage';
 import { uploadPPTFile, saveProjectSubmission, getUserSubmissions, type FirestoreSubmission } from '../lib/db';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { tracks } from '../data/tracks';
 import {
   Upload,
@@ -33,7 +35,9 @@ const trackThemeImages: Record<string, { image: string }> = {
 
 export const SubmitPage: React.FC = () => {
   const [passport, setPassport] = useState<Passport>(() => loadPassport());
+  // cachedUser is for display only — firebaseUid is the authoritative identity
   const [user, setUser] = useState(() => getAuthUser());
+  const [firebaseUid, setFirebaseUid] = useState<string | null>(null);
 
   // Form State
   const [title, setTitle] = useState('');
@@ -53,19 +57,25 @@ export const SubmitPage: React.FC = () => {
   useEffect(() => {
     const loaded = loadPassport();
     setPassport(loaded);
-    const currentUser = getAuthUser();
-    setUser(currentUser);
+    setUser(getAuthUser());
 
-    if (currentUser?.id) {
-      getUserSubmissions(currentUser.id).then((subs) => {
-        if (subs && subs.length > 0) {
-          setExistingSubmission(subs[0]);
-        }
-      }).catch(err => console.error("Error fetching user submissions:", err));
-    }
+    // Resolve real Firebase Auth UID — never trust localStorage alone
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setFirebaseUid(firebaseUser.uid);
+        getUserSubmissions(firebaseUser.uid).then((subs) => {
+          if (subs && subs.length > 0) {
+            setExistingSubmission(subs[0]);
+          }
+        }).catch(err => console.error("Error fetching user submissions:", err));
+      } else {
+        setFirebaseUid(null);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
-  const isUnlocked = !!passport.registered;
+  const isUnlocked = !!passport.registered && !!firebaseUid;
 
   if (!isUnlocked) {
     return (
@@ -346,17 +356,23 @@ export const SubmitPage: React.FC = () => {
     setShowWarning(false);
     setFirestoreError(null);
 
-    const currentUser = user || getAuthUser();
+    // Use Firebase-verified UID — never trust localStorage-cached user.id for writes
+    const authorizedUid = firebaseUid;
+    if (!authorizedUid) {
+      setFirestoreError('You must be signed in to submit. Please sign in and try again.');
+      return;
+    }
 
     setFirestoreLoading(true);
     try {
       // 1. Upload PPT file to Firebase Storage if provided
+      // uploadPPTFile THROWS on failure — no fake success path
       let pptLink = '';
-      if (file && currentUser?.id) {
-        pptLink = await uploadPPTFile(currentUser.id, file);
+      if (file) {
+        pptLink = await uploadPPTFile(authorizedUid, file);
       }
 
-      // 2. Build the local abstract record
+      // 2. Build the local abstract record (display-only cache)
       const newAbstract: Abstract = {
         id: `ABS-${Date.now().toString().slice(-6)}`,
         title: title.trim(),
@@ -370,22 +386,19 @@ export const SubmitPage: React.FC = () => {
         }),
       };
 
-      // 3. Save to Firestore (n8n webhook triggers inside saveProjectSubmission only if isUG)
-      if (currentUser?.id) {
-        await saveProjectSubmission(currentUser.id, {
-          teamName: passport.team || passport.people[0]?.name || currentUser.name,
-          leaderName: passport.people[0]?.name || currentUser.name,
-          collegeName: passport.people[0]?.institution || '',
-          email: currentUser.email,
-          track: selectedTrack,
-          category: passport.category || currentUser.degree || 'PG',
-          problemStatement: title.trim(),
-          solutionSummary: summary.trim(),
-          pptLink: pptLink || 'Abstract Only',
-          secret: `SECRET-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-          file: file || undefined,
-        });
-      }
+      // 3. Save to Firestore (n8n webhook triggered inside saveProjectSubmission via server proxy)
+      await saveProjectSubmission(authorizedUid, {
+        teamName: passport.team || passport.people[0]?.name || user?.name || '',
+        leaderName: passport.people[0]?.name || user?.name || '',
+        collegeName: passport.people[0]?.institution || '',
+        email: user?.email || '',
+        track: selectedTrack,
+        category: passport.category || user?.degree || 'PG',
+        problemStatement: title.trim(),
+        solutionSummary: summary.trim(),
+        pptLink: pptLink || 'Abstract Only',
+        // Note: no 'secret' field — removed (was Math.random(), not a real secret)
+      });
 
       // 4. Update local passport cache
       const updatedPassport: Passport = {
@@ -399,8 +412,8 @@ export const SubmitPage: React.FC = () => {
       // 5. Redirect to dashboard with success toast
       navigate('/dashboard', { state: { submissionSuccess: true } });
     } catch (err) {
-      console.error('Submission error:', err);
-      setFirestoreError('Upload failed. Please check your connection and try again.');
+      console.error('Submission error (sanitized):', err instanceof Error ? err.message : 'unknown');
+      setFirestoreError('Upload or submission failed. Please check your connection and try again. If the problem persists, contact the organiser.');
     } finally {
       setFirestoreLoading(false);
     }

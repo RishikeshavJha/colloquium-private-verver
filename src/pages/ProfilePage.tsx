@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { loadPassport, savePassport, emptyPerson, validatePerson, yearOptionsFor, getAuthUser, setAuthUser, getRegistrationId, type Passport, type Person } from '../utils/storage';
 import { saveUserRegistration } from '../lib/db';
 import { tracks } from '../data/tracks';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import {
   Save,
   CheckCircle2,
@@ -20,6 +22,7 @@ export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const [passport, setPassport] = useState<Passport>(() => loadPassport());
   const [_user, setUser] = useState(() => getAuthUser());
+  const [firebaseUid, setFirebaseUid] = useState<string | null>(() => auth.currentUser?.uid || null);
   const [toast, setToast] = useState(false);
   const [isSavingState, setIsSavingState] = useState(false);
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
@@ -28,9 +31,13 @@ export const ProfilePage: React.FC = () => {
   useEffect(() => {
     setPassport(loadPassport());
     setUser(getAuthUser());
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setFirebaseUid(firebaseUser?.uid || null);
+    });
+    return () => unsubscribe();
   }, []);
 
-  const isUnlocked = !!passport.registered;
+  const isUnlocked = !!passport.registered && !!firebaseUid;
 
   if (!isUnlocked) {
     return (
@@ -185,7 +192,8 @@ export const ProfilePage: React.FC = () => {
         linkedinProfileUrl: p.linkedin || '',
       }));
 
-      saveUserRegistration(currentAuth.id, {
+      const authorizedUid = firebaseUid || currentAuth.id;
+      saveUserRegistration(authorizedUid, {
         name: leaderPerson.name.trim(),
         email: leaderPerson.email.trim().toLowerCase() || currentAuth.email,
         phoneNumber: leaderPerson.mobile,

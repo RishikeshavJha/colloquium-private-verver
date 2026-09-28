@@ -1,0 +1,101 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // =========================================================================
+    // Helper functions
+    // =========================================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    // Allowed PPT/PDF MIME types (presentation files only)
+    function isAllowedPresentationType() {
+      return request.resource.contentType.matches(
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation' // .pptx
+      ) || request.resource.contentType.matches(
+        'application/vnd.ms-powerpoint'                                              // .ppt
+      ) || request.resource.contentType.matches(
+        'application/pdf'                                                             // .pdf
+      );
+    }
+
+    // Allowed image MIME types (payment screenshots only)
+    function isAllowedImageType() {
+      return request.resource.contentType.matches('image/jpeg') ||
+             request.resource.contentType.matches('image/jpg') ||
+             request.resource.contentType.matches('image/png') ||
+             request.resource.contentType.matches('image/webp');
+    }
+
+    // Max 25 MB for presentation files
+    function isAllowedPresentationSize() {
+      return request.resource.size <= 25 * 1024 * 1024;
+    }
+
+    // Max 10 MB for payment screenshots
+    function isAllowedScreenshotSize() {
+      return request.resource.size <= 10 * 1024 * 1024;
+    }
+
+    // =========================================================================
+    // /ppt-uploads/{uid}/{objectId}
+    // Presentation file uploads — owner only, create only, no overwrite, no delete
+    // =========================================================================
+    match /ppt-uploads/{uid}/{objectId} {
+
+      // Only the UID owner can read their own uploads
+      // Admins and evaluators can also read (via admin custom claim)
+      allow read: if isOwner(uid) || isAdmin();
+
+      // Create only — no update (overwrite) allowed after initial upload
+      allow create: if isOwner(uid)
+        && isAllowedPresentationType()
+        && isAllowedPresentationSize();
+
+      // No overwrites
+      allow update: if false;
+
+      // Only admins can delete uploaded presentations
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // /payment-proofs/{uid}/{submissionId}/{objectId}
+    // Payment screenshot uploads — owner only, create only, image types only
+    // =========================================================================
+    match /payment-proofs/{uid}/{submissionId}/{objectId} {
+
+      // Only the UID owner and admins/payment verifiers can read payment proofs
+      allow read: if isOwner(uid) || isAdmin() ||
+                     (isAuthenticated() && request.auth.token.payment_verifier == true);
+
+      // Create only — one upload per submission expected
+      allow create: if isOwner(uid)
+        && isAllowedImageType()
+        && isAllowedScreenshotSize();
+
+      // No overwrites
+      allow update: if false;
+
+      // Only admins can delete payment proofs
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // Deny all other paths
+    // =========================================================================
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

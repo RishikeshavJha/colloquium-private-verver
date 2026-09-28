@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { loadPassport, savePassport, emptyPerson, getAuthUser, getRegistrationId, WHATSAPP_LINK, BROCHURE_LINK, PPT_FORMAT_LINK, type Passport } from '../utils/storage';
 import { getUserSubmissions, type FirestoreSubmission } from '../lib/db';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { useInspireBackground } from '../context/InspireBackgroundContext';
 import {
   Upload,
@@ -31,6 +33,7 @@ export const DashboardPage: React.FC = () => {
   const location = useLocation();
   const [passport, setPassport] = useState<Passport>(() => loadPassport());
   const [_user, setUser] = useState(() => getAuthUser());
+  const [firebaseUid, setFirebaseUid] = useState<string | null>(() => auth.currentUser?.uid || null);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 });
   const [firestoreSubmissions, setFirestoreSubmissions] = useState<(FirestoreSubmission & { id: string })[]>([]);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
@@ -55,9 +58,12 @@ export const DashboardPage: React.FC = () => {
     const currentUser = getAuthUser();
     setUser(currentUser);
 
-    if (currentUser?.id) {
-      getUserSubmissions(currentUser.id).then((subs) => {
-        setFirestoreSubmissions(subs);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      const uid = firebaseUser?.uid || currentUser?.id;
+      setFirebaseUid(firebaseUser?.uid || null);
+      if (uid) {
+        getUserSubmissions(uid).then((subs) => {
+          setFirestoreSubmissions(subs);
         if (subs && subs.length > 0) {
           const currentP = loadPassport();
           if ((!currentP.abstracts || currentP.abstracts.length === 0) || !currentP.track) {
@@ -79,7 +85,8 @@ export const DashboardPage: React.FC = () => {
       }).catch(err => {
         console.error("Failed to load firestore submissions", err);
       });
-    }
+      }
+    });
 
     const pptSubmissionDeadline = new Date('2026-10-11T23:59:59').getTime();
     const evaluationDeadline = new Date('2026-10-13T23:59:59').getTime();
@@ -116,10 +123,13 @@ export const DashboardPage: React.FC = () => {
 
     updateTimer();
     const timer = setInterval(updateTimer, 10000);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      unsubscribe();
+    };
   }, []);
 
-  const isUnlocked = !!passport.registered;
+  const isUnlocked = !!passport.registered && !!firebaseUid;
 
   // Render locked screen if registration is not completed
   if (!isUnlocked) {
